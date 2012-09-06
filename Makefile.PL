@@ -19,6 +19,7 @@ WriteMakefile(
         'Test::More'           => '0',
         'Math::Random::Secure' => '0',
         'MIME::Base64'         => '0',
+        'Mime::QuotedPrint'    => '0',
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'Bytes-Random-Secure-*' },

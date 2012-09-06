@@ -20,5 +20,6 @@ no_index:
 requires:
   MIME::Base64: 0
   Math::Random::Secure: 0
+  Mime::QuotedPrint: 0
   Test::More: 0
 version: 0.01

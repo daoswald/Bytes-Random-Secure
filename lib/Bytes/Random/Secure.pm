@@ -82,8 +82,8 @@ C<random_bytes_hex>.
 
 =head1 RATIONALE
 
-This author can't begin to guess where others might use this module.  But this
-author has found it useful for the following situations:
+It's impossible to predict what uses others might find for any given module, but
+this author has the following use cases:
 
 =over 4
 
@@ -170,6 +170,8 @@ You can find documentation for this module with the perldoc command.
 You can also look for information at:
 
 =over 4
+
+=item * Github Repo: L<https://github.com/daoswald/Bytes-Random-Secure>
 
 =item * RT: CPAN's request tracker (report bugs here)
 
