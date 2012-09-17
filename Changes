@@ -1,4 +1,11 @@
 Revision history for Bytes-Random-Secure
 
-0.01    Thursday September 6, 2012 15:43 PDT
-        - Initial CPAN release.
+0.01    Thursday September 6,  2012 15:43 PDT
+    - Initial CPAN release.
+0.02    Monday   September 17, 2012 16:22 PDT
+    - Removed Math::Random::Secure dependency.
+    - Added Math::Random::ISAAC and Crypt::Random::Source dependencies (they
+      were already dependencies of Math::Random::Secure, so we're actually a
+      little lighter-weight now).
+    - POD enhancements: Explain Math::Random::ISAAC::XS plugin, explain
+      dependency chain, and explain why it gets a whole lot worse under Windows.

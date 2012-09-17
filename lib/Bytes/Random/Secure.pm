@@ -6,21 +6,30 @@ use bytes;
 
 use MIME::Base64 'encode_base64';
 use MIME::QuotedPrint 'encode_qp';
-use Math::Random::Secure 'irand';
+use Math::Random::ISAAC;
+use Crypt::Random::Source::Factory;
+
+use constant ON_WINDOWS => $^O =~ /Win32/i ? 1 : 0; ## no critic (constant)
+use constant SEED_SIZE  => 64;                      ## no critic (constant)
+
+# If we're in a Windows environment we need extra help in getting a
+# strong source.  This doesn't come cheap, so load only if we really need it.
+use if ON_WINDOWS, 'Crypt::Random::Source::Strong::Win32';
 
 use Exporter;
 our @ISA = qw( Exporter );
-
 our @EXPORT_OK = qw( random_bytes     random_bytes_base64
                      random_bytes_hex random_bytes_qp     );
-
 our @EXPORT    = qw( random_bytes ); ## no critic(export)
 
 our $VERSION = '0.01';
 
+my $RNG = Math::Random::ISAAC->new( _seed() );
+
 sub random_bytes {
   my $bytes = shift;
-  return join '', map{ chr irand(256) } 1 .. $bytes;
+  # 2^32 *is* evenly divisible by 256, so no modulo-bias concern here.
+  return join '', map{ chr $RNG->irand % 256 } 1 .. $bytes;
 }
 
 
@@ -41,6 +50,27 @@ sub random_bytes_qp {
   return encode_qp random_bytes( $bytes ), $eof // qq{\n}, 1;
 }
 
+# Generate some high-quality long int seeds for Math::Random::ISAAC to use.
+sub _seed {
+  my $factory = Crypt::Random::Source::Factory->new();
+  my $source;
+  if( ON_WINDOWS ) {
+    $source = $factory->get_strong;
+  }
+  else {
+    # Usually we get a strong source to begin with.
+    $source = $factory->get;
+    # Just in case, ensure that we haven't fallen back to Perl's 'rand'.
+    if( $source->isa('Crypt::Random::Source::Weak::rand') ) {
+      # If we have, force a strong source.
+      $source = $factory->get_strong;
+    }
+  }
+  my $seed = $source->get( SEED_SIZE );
+  # Change our byte stream into long ints to use as seeds.
+  my @seed_ints = unpack( 'L*', $seed );
+  return @seed_ints;
+}
 
 1;
 
@@ -101,7 +131,8 @@ or sampling.
 =head1 EXPORTS
 
 By default C<random_bytes> is the only function exported.  Optionally
-C<random_bytes_base64> and C<random_bytes_hex> may be exported.
+C<random_bytes_base64>, C<random_bytes_hex>, and C<random_bytes_qp>
+may be exported.
 
 =head1 FUNCTIONS
 
@@ -111,7 +142,7 @@ Returns a string containing as many random bytes as requested.
 
 =head2 random_bytes_base64
 
-    my $random_bytes_b64 = random_bytes_base64( $num_bytes );
+    my $random_bytes_b64           = random_bytes_base64( $num_bytes );
     my $random_bytes_b64_formatted = random_bytes_base64( $num_bytes, $eol );
 
 Returns a MIME Base64 encoding of the string of $number_of_bytes random bytes.
@@ -125,7 +156,9 @@ If an C<$eol> is specified, the character(s) specified will be used as line
 delimiters after every 76th character.  The default is C<qq{\n}>.  If you wish
 to eliminate line-break insertions, specify an empty string: C<q{}>.
 
-=head2 random_bytes_hex( $number_of_bytes )
+=head2 random_bytes_hex
+
+    my $random_bytes_as_hex = random_bytes_hex( $num_bytes );
 
 Returns a string of hex digits representing the string of $number_of_bytes
 random bytes.
@@ -138,7 +171,7 @@ and set a database field that's too narrow.
 
 =head2 random_bytes_qp
 
-    my $random_bytes_qp = random_bytes_qp( $num_bytes );
+    my $random_bytes_qp           = random_bytes_qp( $num_bytes );
     my $random_bytes_qp_formatted = random_bytes_qp( $num_bytes, $eol );
 
 Produces a string of C<$num_bytes> random bytes, using MIME Quoted Printable
@@ -146,6 +179,66 @@ encoding (as produced by L<MIME::QuotedPrint>'s C<encode_qp> function.  The
 default configuration uses C<\n> as a line break after every 76 characters, and
 the "binmode" setting is used to guarantee a lossless round trip.  If no line
 break is wanted, pass an empty string as C<$eol>.
+
+=head1 CONFIGURATION
+
+L<Bytes::Random::Secure> intentionally I<Keeps it Simple>.  There is nothing
+to configure, and you don't get the opportunity to hamper the byte stream's
+quality by picking your own (possibly less secure) seed or seed-generator.  It
+was a lot of work finding a reliable one, and if you don't like it, just go use
+Math::Random::ISAAC directly (or get in touch with me and we can discuss whether
+your method might be a better choice globally). ;)
+
+If you really have the need to feel useful, install Math::Random::ISAAC::XS.
+Bytes::Random::Secure's random number generator uses Math::Random::ISAAC.  That
+module implements the ISAAC algorithm in pure Perl.  However, if you
+install L<Math::Random::ISAAC::XS>, you get the same algorithm implemented in
+C/XS, which will provide better performance.  If you need to produce your
+random bytes more quickly, simply install Math::Random::ISAAC::XS, and it will
+be used automatically.
+
+=head1 CAVEATS
+
+It's easy to generate weak pseudo-random bytes.  It's also easy to think you're
+generating strong pseudo-random bytes when really you're not.
+It's hard to generate strong (ie, secure) random bytes in a way that works
+across a wide variety of platforms.  A primary goal for this module is to
+provide cryptographically secure pseudo-random bytes.  A secondary goal is to
+provide a simple user experience (thus reducing the propensity for getting it
+wrong).  A terciary goal (and one that will never be permitted to compromise the
+primary goal) is to minimize the dependencies required to achieve the primary
+and secondary goals.
+
+To re-iterate: We want secure random bytes, we want ease of use, and if we can
+get both while minimizing the dependencies, that would be nice, but is not a
+requirement.
+
+This module steals some code from L<Math::Random::Secure>.  That module is an
+excellent resource, but implements a broader range of functionality than is
+needed here.  So we just borrowed some code from it, and some of its
+dependencies.
+
+The primary source of random data in this module comes from the excellent
+L<Math::Random::ISAAC>.  Unfortunately, to be useful and secure, even
+Math::Random::ISAAC needs a cryptographically sound seed, which we derive from
+L<Crypt::Random::Source>. Neither of those modules are light on dependencies.
+The situation becomes even more difficult in a Win32 environment, where
+Crypt::Random::Source needs the L<Crypt::Random::Source::Strong::Win32> plug-in,
+which is even heavier in external dependencies.
+
+The result is that the cost of getting cryptographically strong random bytes
+on most platforms is a heavy dependency chain, and the cost of getting them
+in a windows platform is about twice as heavy of a dependency chain as on most
+other platforms.  If you're a Win32 user, and you cannot justify the dependency
+chain, look elsewhere.  On the other hand, if you're looking for a secure random
+bytes solution that "just works" portably (and are willing to live with the
+fact that the dependencies are heavier for Windows users), you've come to the
+right place.
+
+Patches that improve the Win32 situation without compromising the module's
+primary and secondary goals, and without growing the dependencies for *nix users
+are certainly welcome.
+
 
 =head1 AUTHOR
 
@@ -156,9 +249,6 @@ David Oswald C<< <davido [at] cpan (dot) org> >>
 Please report any bugs or feature requests to C<bug-bytes-random-secure at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Bytes-Random-Secure>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
-
-
-
 
 =head1 SUPPORT
 

@@ -12,14 +12,12 @@ WriteMakefile(
       ? ('LICENSE'=> 'perl')
       : ()),
     PL_FILES            => {},
-    BUILD_REQUIRES => {
-        'Statistics::Test::RandomWalk' => '0',
-    },
     PREREQ_PM => {
-        'Test::More'           => '0',
-        'Math::Random::Secure' => '0',
-        'MIME::Base64'         => '0',
-        'Mime::QuotedPrint'    => '0',
+        'Test::More'            => '0',
+        'Crypt::Random::Source' => '0',
+        'Math::Random::ISAAC'   => '0',
+        'MIME::Base64'          => '0',
+        'MIME::QuotedPrint'     => '0',
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'Bytes-Random-Secure-*' },
