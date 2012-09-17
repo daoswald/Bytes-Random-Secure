@@ -22,7 +22,7 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Statistics::Test::RandomWalk" : "0"
+            "ExtUtils::MakeMaker" : "0"
          }
       },
       "configure" : {
@@ -32,13 +32,14 @@
       },
       "runtime" : {
          "requires" : {
+            "Crypt::Random::Source" : "0",
             "MIME::Base64" : "0",
-            "Math::Random::Secure" : "0",
-            "Mime::QuotedPrint" : "0",
+            "MIME::QuotedPrint" : "0",
+            "Math::Random::ISAAC" : "0",
             "Test::More" : "0"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.01"
+   "version" : "0.02"
 }
