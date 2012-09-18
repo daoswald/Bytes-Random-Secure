@@ -3,6 +3,24 @@ Bytes::Random::Secure
 Generate strings of cryptographic-quality pseudo-random bytes as a string of
 raw bytes, hex digits, MIME Base64, or MIME QuotedPrintable.
 
+
+CONFIGURATION
+
+Please ensure that Mouse is available on your system.  If it isn't, Any::Moose
+will pull in the heavy-weight: Moose, which is overkill for what this module
+does.  In fact, the Mouse dependency traces back to this module's seed
+generator: Crypt::Random::Source.
+
+If you need better performance, install Math::Random::ISAAC::XS.  It will
+be automatically detected, and will provide better performance as you generate
+random bytes.
+
+If you're on Windows, I'm sorry to say that there is an additional dependency
+that will be pulled in automatically, and it's not light-weight.  Unfortunately
+it's difficult to get a good random seed source in a Windows environment.  At
+least it *does* work!
+
+
 INSTALLATION
 
 To install this module, run the following commands:

@@ -11,8 +11,16 @@ BEGIN {
 }
 
 can_ok( 'Bytes::Random::Secure',
-        qw/ random_bytes random_bytes_hex random_bytes_base64 random_bytes_qp/
-);
+  qw/ random_bytes random_bytes_hex random_bytes_base64 random_bytes_qp   _seed
+/ );
+
+
+my @seeds = Bytes::Random::Secure::_seed;
+is( scalar @seeds, 16, 'Received 16 seeds from _seed' );
+foreach my $seed ( @seeds ) {
+  is( $seed >= 0 && $seed < 2**32, 1, "Seed $seed is in range." );
+}
+
 
 foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
   my $correct = $want >= 0 ? $want : 0;

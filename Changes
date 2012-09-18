@@ -1,5 +1,18 @@
 Revision history for Bytes-Random-Secure
 
+0.03    Tuesday  September 18, 2012 14:17 PDT
+    - POD enhancements, explaining the dependency chain, and how to minimize
+      the Any::Moose impact by ensuring Mouse is installed.
+    - Removed syntax that was only valid for newer versions of Perl.  We should
+      be 5.6.x compatible now.
+    - Placed the random number factory in a closure, making it only accessable
+      by the accessor random_bytes().
+    - Added some tests for seed generation since we took that functionality 
+      away from Math::Random::Secure when we removed it from our list of
+      dependencies in v0.02.
+    - Added a Win32 test to Makefile.PL so that a Windows-only dependency will
+      be included if necessary.
+
 0.02    Monday   September 17, 2012 16:22 PDT
     - Removed Math::Random::Secure dependency.
     - Added Math::Random::ISAAC and Crypt::Random::Source dependencies (they
