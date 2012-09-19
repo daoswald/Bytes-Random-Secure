@@ -36,7 +36,13 @@ while( $low < 10 || $high < 10 ) {
   $byte < 0 || $byte > 255 && $range_err++;
   $count++;
 }
-diag "$count iterations required to reach five '0' bytes and five '255' bytes.";
+
+ok( $count > 1500 );
+ok( $count < 4500 );
+
+diag "$count iterations required to reach five '0' bytes and five '255' "
+  .  "bytes.  Approx avg is 3012.\n";
+
 ok( $low,  "random_bytes produces $low bytes of '0'."   );
 ok( $high, "random_bytes produces $high bytes of '255'." );
 ok( !$range_err, "random_bytes produced $range_err values out of 0 .. 255.");

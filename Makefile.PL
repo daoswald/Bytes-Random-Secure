@@ -26,6 +26,9 @@ WriteMakefile(
         ? ( 'LICENSE' => 'perl' )
         : () ),
     PL_FILES  => {},
+    BUILD_REQUIRES => {
+        'Statistics::Basic'    => 1,
+    },
     PREREQ_PM => \%PREREQ_PM,
     dist      => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Bytes-Random-Secure-*' },

@@ -3,7 +3,7 @@ abstract: 'Perl extension to generate cryptographically-secure'
 author:
   - 'David Oswald <davido@cpan.org>'
 build_requires:
-  ExtUtils::MakeMaker: 0
+  Statistics::Basic: 1
 configure_requires:
   ExtUtils::MakeMaker: 0
 dynamic_config: 0

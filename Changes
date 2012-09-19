@@ -1,5 +1,9 @@
 Revision history for Bytes-Random-Secure
 
+0.04    ?????????????????????????????????????
+    - Added t/21-bytes_random_tests.t, which is an adaptation of the test suite
+      for the Bytes::Random module.
+    - Added a BUILD_REQUIRES dependency to accommodate the Bytes::Random tests.
 0.03    Tuesday  September 18, 2012 14:17 PDT
     - POD enhancements, explaining the dependency chain, and how to minimize
       the Any::Moose impact by ensuring Mouse is installed.
