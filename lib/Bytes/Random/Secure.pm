@@ -22,7 +22,7 @@ our @EXPORT_OK = qw( random_bytes     random_bytes_base64
   random_bytes_hex random_bytes_qp     );
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 
 

@@ -1,4 +1,7 @@
 Revision history for Bytes-Random-Secure
+0.06    Friday September 21, 2012 22:43 PDT
+    - Fixed the optionality of t/21-bytes_random_tests.t.
+    - Documented the install process in README.
 0.05    Friday September 21, 2012 13:15 PDT
     - POD revisions: Better details on dependencies, minimizing bloat, and 
       Win32-specific requirements.

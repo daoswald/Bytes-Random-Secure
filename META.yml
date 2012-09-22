@@ -23,4 +23,4 @@ requires:
   MIME::QuotedPrint: 0
   Math::Random::ISAAC: 0
   Test::More: 0
-version: 0.05
+version: 0.06
