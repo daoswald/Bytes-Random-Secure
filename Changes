@@ -1,6 +1,11 @@
 Revision history for Bytes-Random-Secure
-
-0.04    ?????????????????????????????????????
+0.05    Friday September 21, 2012 13:15 PDT
+    - POD revisions: Better details on dependencies, minimizing bloat, and 
+      Win32-specific requirements.
+    - 21-bytes_random_tests.t is now optional, because Statistics::Basic will 
+      fail to install in some environments due to a problem in one of its 
+      dependencies (Number::Format).
+0.04    Wednesday September 19, 2012 15:00 PDT
     - Added t/21-bytes_random_tests.t, which is an adaptation of the test suite
       for the Bytes::Random module.
     - Added a BUILD_REQUIRES dependency to accommodate the Bytes::Random tests.

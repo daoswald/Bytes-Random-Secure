@@ -22,7 +22,7 @@ our @EXPORT_OK = qw( random_bytes     random_bytes_base64
   random_bytes_hex random_bytes_qp     );
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.03';
+our $VERSION = '0.05';
 
 
 
@@ -107,9 +107,12 @@ Quoted Printable representation) of a specific number of random bytes.
 
 This module can be a drop-in replacement for L<Bytes::Random>, with the primary
 enhancement of using a much higher quality random number generator to create
-the random data.  The random number generator comes from
-L<Math::Random::Secure>, and is suitable for cryptographic purposes, including
-the generation of random salt or random secrets.
+the random data.  The random number generator comes from L<Math::Random::ISAAC>,
+and is suitable for cryptographic purposes.  Actually, the harder problem to
+solve is how to seed the generator.  This module uses L<Crypt::Random::Source>
+to generate the initial seeds for Math::Random::ISAAC.  On Windows platforms
+Crypt::Random::Source needs L<Crypt::Random::Source::Strong::Win32> to obtain
+high quality seeds.
 
 In addition to providing C<random_bytes()>, this module also provides three
 functions not found in L<Bytes::Random>: C<random_bytes_base64()>, 
@@ -117,8 +120,9 @@ C<random_bytes_hex>, and C<random_bytes_qp>.
 
 =head1 RATIONALE
 
-It's impossible to predict what uses others might find for any given module, but
-this author has the following use cases:
+There are many uses for cryptographic quality randomness.  This module aims to
+provide a generalized tool that can fit into many applications.  You're free
+to come up with your own use-cases, but there are several obvious ones:
 
 =over 4
 
@@ -136,7 +140,9 @@ generate a strong random seed, and then to instantiate a high quality random
 number factory based on the strong seed.  The code in this module really just
 glues together the building blocks.  I'm sure that with a little research
 just about anyone could do the same.  But chances are you'll end up using the
-same dependencies I did, or others of similar quality (and weight).
+same dependencies I did, or others of similar quality (and weight).  It's taken
+a good deal of research to come up with what I feel is the strongest possible
+tool-chain.  Hopefully others can benefit from this work.
 
 =back
 
@@ -197,17 +203,18 @@ break is wanted, pass an empty string as C<$eol>.
 L<Bytes::Random::Secure>'s interface I<keeps it simple>.  There is generally 
 nothing to configure.  This is by design, as it eliminates much of the 
 potential for diminishing the quality of the random byte stream by picking your 
-own (possibly less secure) seed or seed-generator.  It was a lot of work 
-finding a reliable seed source.  If you would prefer to supply your own, skip 
+own (possibly less secure) seed or seed-generator.  Finding a reliable seed
+source is not an easy task.  If you would prefer to supply your own, skip 
 this module and go directly to  Math::Random::ISAAC (or get in touch with me 
 and we can discuss whether your method might be a better choice globally). ;)
 
 L<Crypt::Random::Source> provides our strong seed.  For better or worse, this
 module uses L<Any::Moose>, which will default to the lighter-weight L<Mouse>
 if it is available.  If Mouse is I<not> available, but L<Moose> I<is>, Moose
-will be used.  This is a significantly heavier dependency.  It is my
-recommendation that if you don't have Mouse installed, you install it right now
-before you use this module, just in the spirit of keeping the bloat to a
+will be used.  This is a significantly heavier dependency.  Unless you are using
+Moose in your application already, it's probably better to allow Mouse to be
+used instead.  It is my recommendation that if you don't have Mouse installed,
+you install it right now before you use this module to keep the bloat to a
 minimum.
 
 If you really have the need to feel useful, you may also install 
@@ -219,11 +226,21 @@ need to produce your random bytes more quickly, simply installing
 Math::Random::ISAAC::XS will result in it automatically being used, and a
 pretty good performance improvement will coincide.
 
+=head2 Win32 Special Dependency
+
+In Win32 environments, Crypt::Random::Source uses a different technique to
+generate high quality randomness.  In a Windows environment, this module has
+the additional requirement of needing L<Crypt::Random::Source::Strong::Win32>.
+Unfortunately, the current version of that module has a broken test, and in
+some cases may fail its test suite.  It may be necessary to force the
+installation of Crypt::Random::Source::Strong::Win32 before
+Bytes::Random::Secure can be installed.
+
 =head1 CAVEATS
 
 It's easy to generate weak pseudo-random bytes.  It's also easy to think you're
 generating strong pseudo-random bytes when really you're not.  And it's hard to
-test for pseudo-random quality.
+test for pseudo-random cryptographic acceptable quality.
 
 It's also hard to generate strong (ie, secure) random bytes in a way that works
 across a wide variety of platforms.  A primary goal for this module is to
@@ -254,15 +271,19 @@ The result is that the cost of getting cryptographically strong random bytes
 on most platforms is a heavy dependency chain, and the cost of getting them
 in a windows platform is about twice as heavy of a dependency chain as on most
 other platforms.  If you're a Win32 user, and you cannot justify the dependency
-chain, look elsewhere.  On the other hand, if you're looking for a secure random
-bytes solution that "just works" portably (and are willing to live with the
-fact that the dependencies are heavier for Windows users), you've come to the
-right place.
+chain, look elsewhere (and let me know what you find!).  On the other hand, if
+you're looking for a secure random bytes solution that "just works" portably
+(and are willing to live with the fact that the dependencies are heavier for
+Windows users), you've come to the right place.
 
 Patches that improve the Win32 situation without compromising the module's
 primary and secondary goals, and without growing the dependencies for *nix users
 are certainly welcome.
 
+All users can minimize the number of modules loaded upon startup by making sure
+that L<Mouse> is available on their system so that L<Any::Moose> can choose that
+lighter-weight alternative to L<Moose>.  Of course if your application already
+uses Moose, this becomes a non-issue.
 
 =head1 AUTHOR
 

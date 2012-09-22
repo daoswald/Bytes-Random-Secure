@@ -3,9 +3,15 @@
 use strict;
 use warnings;
 
-use Test::More tests => 41 + 0x100 + 1;
-use Statistics::Basic qw(stddev);
-BEGIN { use_ok('Bytes::Random::Secure') };
+use Test::More;
+
+eval "use Statistics::Basic;"; ## no critic (eval)
+if ( $@ ) {
+  plan( skip_all => "Statistics::Basic needed for random quality tests." );
+}
+
+
+use_ok('Bytes::Random::Secure');
 
 
 for( 1..40 )
@@ -28,8 +34,12 @@ for( 1..40 )
           "could produce bytes of numeric value $slot";
     }
 
-    my $s = stddev(map {defined $_ ? $_ : 0} @dispersion{@slots})->query;
+    my $s = Statistics::Basic::stddev(
+      map {defined $_ ? $_ : 0} @dispersion{@slots}
+    )->query;
     ok 2 > log($s) / log(10),
       "$amount values are roughly evenly distributed "
       . "(standard deviation was $s, should be about 60)";
 }
+
+done_testing();
