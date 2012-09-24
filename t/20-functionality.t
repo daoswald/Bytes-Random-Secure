@@ -29,8 +29,8 @@ foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
 }
 
 my @counts;
-
-for( 1 .. 1000 ) {
+my $iterations = 500;  
+for( 1 .. $iterations ) {
     my( $count, $low, $high, $range_err ) = ( 0, 0, 0, 0 );
     while( $low < 10 || $high < 10 ) {
       my $byte = ord random_bytes( 1 );
@@ -49,12 +49,11 @@ my $total_count;
 $total_count += $_ for @counts;
 my $avg_count = $total_count / scalar @counts;
 
-ok( $avg_count > 2000 );
-ok( $avg_count < 4000 );
-
-diag "$avg_count average iterations required to reach five '0' bytes and " .
-     "five '255' bytes, 1000 times.  Approx avg should be 3012.\n";
-
+ok( ( $avg_count > 2500 && $avg_count < 3500 ),
+    "$avg_count average iterations to reach five '0' bytes and five '255' " .
+    'bytes. Within reasonable range (expected approx 3012)'
+);
+diag "Average iterations: $avg_count (expect approx 3012).";
 
 foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
   my $result  = random_bytes_hex( $want );
