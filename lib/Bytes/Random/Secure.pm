@@ -21,7 +21,7 @@ our @EXPORT_OK = qw( random_bytes     random_bytes_base64
   random_bytes_hex random_bytes_qp     );
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 
 
@@ -98,6 +98,8 @@ random bytes.
 
     my $bytes_as_hex = random_bytes_hex(8);
 
+    my $bytes_as_quoted_printable = random_bytes_qp(100);
+
 =head1 DESCRIPTION
 
 L<Bytes::Random::Secure> provides four functions that can be used anytime you
@@ -134,16 +136,14 @@ content to prevent cookie forgeries.
 =item * Generating raw cryptographic-quality pseudo-random data sets for testing
 or sampling.
 
-Why this module?  This module uses several high quality CPAN tools to first
-generate a strong random seed, and then to instantiate a high quality random
-number factory based on the strong seed.  The code in this module really just
-glues together the building blocks.  I'm sure that with a little research
-just about anyone could do the same.  But chances are you'll end up using the
-same dependencies I did, or others of similar quality (and weight).  It's taken
-a good deal of research to come up with what I feel is the strongest possible
-tool-chain.  Hopefully others can benefit from this work.
-
 =back
+
+Why this module?  This module uses several high quality CPAN tools to first
+generate strong random seeds, and then to instantiate a high quality random
+number factory based on the strong seed.  The code in this module really just
+glues together the building blocks.  However, it's taken a good deal of research
+to come up with what I feel is a strong tool-chain that isn't going to fall back
+to a weaker state on some systems.  Hopefully others can benefit from this work.
 
 =head1 EXPORTS
 
@@ -153,16 +153,20 @@ may be exported.
 
 =head1 FUNCTIONS
 
-=head2 random_bytes( $number_of_bytes )
+=head2 random_bytes
 
-Returns a string containing as many random bytes as requested.
+    my $random_bytes = random_bytes( 512 );
+    
+Returns a string containing as many random bytes as requested.  Obviously the
+string isn't useful for display, as it can contain any byte value from 0 through
+255.
 
 =head2 random_bytes_base64
 
     my $random_bytes_b64           = random_bytes_base64( $num_bytes );
     my $random_bytes_b64_formatted = random_bytes_base64( $num_bytes, $eol );
 
-Returns a MIME Base64 encoding of the string of $number_of_bytes random bytes.
+Returns a MIME Base64 encoding of a string of $number_of_bytes random bytes.
 Note, it should be obvious, but is worth mentioning that a base64 encoding of
 base256 data requires more digits to represent the bytes requested.  The actual
 number of digits required, including padding is C<4(n/3)>.
@@ -201,11 +205,11 @@ break is wanted, pass an empty string as C<$eol>.
 
 L<Bytes::Random::Secure>'s interface I<keeps it simple>.  There is generally 
 nothing to configure.  This is by design, as it eliminates much of the 
-potential for diminishing the quality of the random byte stream by picking your 
-own (possibly less secure) seed or seed-generator.  Finding a reliable seed
-source is not an easy task.  If you would prefer to supply your own, skip 
-this module and go directly to  Math::Random::ISAAC (or get in touch with me 
-and we can discuss whether your method might be a better choice globally). ;)
+potential for diminishing the quality of the random byte stream by through
+misconfiguration.  Finding a reliable seed source is the hardest component.  If
+you would prefer to supply your own, skip this module and go directly to
+L<Math::Random::ISAAC> (or get in touch with me and we can discuss whether your
+method might be a better choice for this module too). ;)
 
 L<Crypt::Random::Source> provides our strong seed.  For better or worse, this
 module uses L<Any::Moose>, which will default to the lighter-weight L<Mouse>

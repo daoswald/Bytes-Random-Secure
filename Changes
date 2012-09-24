@@ -1,4 +1,10 @@
 Revision history for Bytes-Random-Secure
+0.07    Sunday September 23, 2012 22:48 PDT
+    - Refined t/20-functionality.t's approach toward verifying bytes seem well
+      behaved.
+    - Corrected a couple of POD problems.
+    - Note: Under Moose the test suite generates a few warnings.  Not sure what
+      the best solution will be (they're harmless but annoying).
 0.06    Friday September 21, 2012 22:43 PDT
     - Fixed the optionality of t/21-bytes_random_tests.t.
     - Documented the install process in README.

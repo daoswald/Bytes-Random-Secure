@@ -49,7 +49,10 @@ my $total_count;
 $total_count += $_ for @counts;
 my $avg_count = $total_count / scalar @counts;
 
-ok( ( $avg_count > 2500 && $avg_count < 3500 ),
+# Allow for a 10% deviation from average after 500 passes.
+# Testing of 500 test-suite runs shows that the deviation should never be more
+# than about 4%, but we don't need tests failing unless things are really wonky.
+ok( ( $avg_count > 2711 && $avg_count < 3313 ),
     "$avg_count average iterations to reach five '0' bytes and five '255' " .
     'bytes. Within reasonable range (expected approx 3012)'
 );
