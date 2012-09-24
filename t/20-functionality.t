@@ -28,24 +28,33 @@ foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
       "random_bytes($want) returns $correct bytes." );
 }
 
-my( $count, $low, $high, $range_err ) = ( 0, 0, 0, 0 );
-while( $low < 10 || $high < 10 ) {
-  my $byte = ord random_bytes( 1 );
-  $byte == 0 && $low++;
-  $byte == 255 && $high++;
-  $byte < 0 || $byte > 255 && $range_err++;
-  $count++;
+my @counts;
+
+for( 1 .. 1000 ) {
+    my( $count, $low, $high, $range_err ) = ( 0, 0, 0, 0 );
+    while( $low < 10 || $high < 10 ) {
+      my $byte = ord random_bytes( 1 );
+      $byte == 0 && $low++;
+      $byte == 255 && $high++;
+      $byte < 0 || $byte > 255 && $range_err++;
+      $count++;
+    }
+    ok( $low,  "random_bytes produces $low bytes of '0'."   );
+    ok( $high, "random_bytes produces $high bytes of '255'." );
+    ok( !$range_err, "random_bytes produced $range_err values out of 0 .. 255.");
+    push @counts, $count;
 }
 
-ok( $count > 1500 );
-ok( $count < 4500 );
+my $total_count;
+$total_count += $_ for @counts;
+my $avg_count = $total_count / scalar @counts;
 
-diag "$count iterations required to reach five '0' bytes and five '255' "
-  .  "bytes.  Approx avg is 3012.\n";
+ok( $avg_count > 2000 );
+ok( $avg_count < 4000 );
 
-ok( $low,  "random_bytes produces $low bytes of '0'."   );
-ok( $high, "random_bytes produces $high bytes of '255'." );
-ok( !$range_err, "random_bytes produced $range_err values out of 0 .. 255.");
+diag "$avg_count average iterations required to reach five '0' bytes and " .
+     "five '255' bytes, 1000 times.  Approx avg should be 3012.\n";
+
 
 foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
   my $result  = random_bytes_hex( $want );

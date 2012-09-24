@@ -3,7 +3,6 @@ package Bytes::Random::Secure;
 use strict;
 use warnings;
 use bytes;
-
 use MIME::Base64 'encode_base64';
 use MIME::QuotedPrint 'encode_qp';
 use Math::Random::ISAAC;
