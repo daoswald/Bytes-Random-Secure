@@ -1,4 +1,7 @@
 Revision history for Bytes-Random-Secure
+0.08    Sunday October 28, 2012 00:06 MDT
+    - Added an example in the ./examples/ directory.
+    - Added a minimum Perl version to the distribution metadata.
 0.07    Sunday September 23, 2012 22:48 PDT
     - Refined t/20-functionality.t's approach toward verifying bytes seem well
       behaved.

@@ -4,11 +4,11 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 my %PREREQ_PM = (
-    'Test::More'            => '0',
+    'Test::More'            => '0',    # Core.
     'Crypt::Random::Source' => '0',    # Provides a high quality seed.
     'Math::Random::ISAAC'   => '0',    # Provides our random number generator.
-    'MIME::Base64'          => '0',
-    'MIME::QuotedPrint'     => '0',
+    'MIME::Base64'          => '0',    # Core.
+    'MIME::QuotedPrint'     => '0',    # Core.
 );
 
 # Crypt::Random::Source needs the Crypt::Random::Source::Strong::Win32
@@ -26,6 +26,7 @@ WriteMakefile(
         ? ( 'LICENSE' => 'perl' )
         : () ),
     PL_FILES  => {},
+    MIN_PERL_VERSION => '5.006000',
     PREREQ_PM => \%PREREQ_PM,
     dist      => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Bytes-Random-Secure-*' },
