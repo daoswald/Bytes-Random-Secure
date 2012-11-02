@@ -24,4 +24,4 @@ requires:
   Math::Random::ISAAC: 0
   Test::More: 0
   perl: 5.006000
-version: 0.08
+version: 0.09

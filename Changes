@@ -1,46 +1,56 @@
-Revision history for Bytes-Random-Secure
-0.08    Sunday October 28, 2012 00:06 MDT
-    - Added an example in the ./examples/ directory.
-    - Added a minimum Perl version to the distribution metadata.
-0.07    Sunday September 23, 2012 22:48 PDT
-    - Refined t/20-functionality.t's approach toward verifying bytes seem well
-      behaved.
-    - Corrected a couple of POD problems.
-    - Note: Under Moose the test suite generates a few warnings.  Not sure what
-      the best solution will be (they're harmless but annoying).
-0.06    Friday September 21, 2012 22:43 PDT
-    - Fixed the optionality of t/21-bytes_random_tests.t.
-    - Documented the install process in README.
-0.05    Friday September 21, 2012 13:15 PDT
-    - POD revisions: Better details on dependencies, minimizing bloat, and 
-      Win32-specific requirements.
-    - 21-bytes_random_tests.t is now optional, because Statistics::Basic will 
-      fail to install in some environments due to a problem in one of its 
-      dependencies (Number::Format).
-0.04    Wednesday September 19, 2012 15:00 PDT
-    - Added t/21-bytes_random_tests.t, which is an adaptation of the test suite
-      for the Bytes::Random module.
-    - Added a BUILD_REQUIRES dependency to accommodate the Bytes::Random tests.
-0.03    Tuesday  September 18, 2012 14:17 PDT
-    - POD enhancements, explaining the dependency chain, and how to minimize
-      the Any::Moose impact by ensuring Mouse is installed.
-    - Removed syntax that was only valid for newer versions of Perl.  We should
-      be 5.6.x compatible now.
-    - Placed the random number factory in a closure, making it only accessable
-      by the accessor random_bytes().
-    - Added some tests for seed generation since we took that functionality 
-      away from Math::Random::Secure when we removed it from our list of
-      dependencies in v0.02.
-    - Added a Win32 test to Makefile.PL so that a Windows-only dependency will
-      be included if necessary.
+Revision history for Bytes::Random::Secure
 
-0.02    Monday   September 17, 2012 16:22 PDT
-    - Removed Math::Random::Secure dependency.
-    - Added Math::Random::ISAAC and Crypt::Random::Source dependencies (they
-      were already dependencies of Math::Random::Secure, so we're actually a
-      little lighter-weight now).
-    - POD enhancements: Explain Math::Random::ISAAC::XS plugin, explain
-      dependency chain, and explain why it gets a whole lot worse under Windows.
+0.09 2012-11-02
+  - "Changes" is now CPAN::Changes::Spec compliant.
+  - Added t/09-changes.t to verify spec compliance.
 
-0.01    Thursday September 6,  2012 15:43 PDT
-    - Initial CPAN release.
+0.08 2012-10-28
+  - Added an example in the ./examples/ directory.
+  - Added a minimum Perl version to the distribution metadata.
+
+0.07 2012-09-23
+  - Refined t/20-functionality.t's approach toward verifying bytes seem well
+    behaved.
+  - Corrected a couple of POD problems.
+  - Note: Under Moose the test suite generates a few warnings.  Not sure what
+    the best solution will be (they're harmless but annoying).
+
+0.06 2012-09-21
+  - Fixed the optionality of t/21-bytes_random_tests.t.
+  - Documented the install process in README.
+
+0.05 2012-09-20
+  - POD revisions: Better details on dependencies, minimizing bloat, and 
+    Win32-specific requirements.
+  - 21-bytes_random_tests.t is now optional, because Statistics::Basic will 
+    fail to install in some environments due to a problem in one of its 
+    dependencies (Number::Format).
+
+0.04 2012-09-19
+  - Added t/21-bytes_random_tests.t, which is an adaptation of the test suite
+    for the Bytes::Random module.
+  - Added a BUILD_REQUIRES dependency to accommodate the Bytes::Random tests.
+
+0.03 2012-09-18
+  - POD enhancements, explaining the dependency chain, and how to minimize
+    the Any::Moose impact by ensuring Mouse is installed.
+  - Removed syntax that was only valid for newer versions of Perl.  We should
+    be 5.6.x compatible now.
+  - Placed the random number factory in a closure, making it only accessable
+    by the accessor random_bytes().
+  - Added some tests for seed generation since we took that functionality 
+    away from Math::Random::Secure when we removed it from our list of
+    dependencies in v0.02.
+  - Added a Win32 test to Makefile.PL so that a Windows-only dependency will
+    be included if necessary.
+
+0.02 2012-09-17
+  - Removed Math::Random::Secure dependency.
+  - Added Math::Random::ISAAC and Crypt::Random::Source dependencies (they
+    were already dependencies of Math::Random::Secure, so we're actually a
+    little lighter-weight now).
+  - POD enhancements: Explain Math::Random::ISAAC::XS plugin, explain
+    dependency chain, and explain why it gets a whole lot worse under Windows.
+
+0.01 2012-09-06
+  - Initial CPAN release.
