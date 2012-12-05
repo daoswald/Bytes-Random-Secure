@@ -29,22 +29,23 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 {
     my $RNG = Math::Random::ISAAC->new( _seed() );
 
     sub random_bytes {
-        my $bytes = shift // 0;  # No parameter passed, default to zero bytes.
-
+        my $bytes = shift;
+        $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
         # 2^32 *is* evenly divisible by 256, so no modulo-bias concern here.
         return join '', map { chr $RNG->irand % 256 } 1 .. $bytes;
     }
 
-
+    # Generate a list of $count random numbers between 0 and $range.
     sub _ranged_randoms {
-        my $range = shift;
-        my $count = shift // 0;
+        my( $range, $count ) = @_;
+        $count = defined $count ? $count : 0;
+        
         my $divisor = _closest_divisor( $range );
         my @randoms;
 
@@ -111,8 +112,9 @@ sub _seed {
 # handled inside of a lexical closure block, above.
 
 sub random_string_from {
-    my $bag   = shift // '';
-    my $bytes = shift // 0;
+    my( $bag, $bytes ) = @_;
+    $bag      = defined $bag ? $bag : '';
+    $bytes    = defined $bytes ? $bytes : 0;
     my $range = length $bag;
 
     croak "Bag's size must be at least 1 character."
@@ -130,8 +132,9 @@ sub random_string_from {
 
 
 sub _closest_divisor {
-  my $range = shift // 0;
-
+  my $range = shift;
+  $range = defined $range ? $range : 0;
+  
   croak "$range must be positive." if $range < 0;
   croak "$range exceeds irand max limit of 2**32." if $range > 2 ** 32;
 
@@ -162,14 +165,14 @@ random bytes.
     );
 
     my $bytes = random_bytes(32); # A string of 32 random bytes.
-    
-    my $bytes_as_base64 = random_bytes_base64(57);
 
-    my $bytes_as_hex = random_bytes_hex(8);
+    my $bytes = random_string_from( 'abcde', 10 ); # 10 random a,b,c,d, and e's.
 
-    my $bytes_as_quoted_printable = random_bytes_qp(100);
+    my $bytes_as_base64 = random_bytes_base64(57); # Base64 encoded rand bytes.
 
-    my $bytes = random_bytes_from( 'abcde', 10 );
+    my $bytes_as_hex = random_bytes_hex(8); # Eight random bytes as hex digits.
+
+    my $bytes_as_quoted_printable = random_bytes_qp(100); # QP encoded bytes.
 
 =head1 DESCRIPTION
 
@@ -232,6 +235,32 @@ Returns a string containing as many random bytes as requested.  Obviously the
 string isn't useful for display, as it can contain any byte value from 0 through
 255.
 
+=head2 random_string_from
+
+    my $random_bytes = random_string_from( $bag, $length );
+    my $random_bytes = random_string_from( 'abc', 50 );
+
+C<$bag> is a string of characters from which C<random_string_from> may choose in
+building a random string.  We call it a 'bag', because it's permissible to have
+repeated chars in the bag (if not, we could call it a set).  Repeated digits
+get more weight.  For example, C<random_string_from( 'aab', 1 )> would have a
+66.67% chance of returning an 'a', and a 33.33% chance of returning a 'b'.  For
+unweighted distribution, ensure there are no duplicates in C<$bag>.
+
+This isn't a "draw and discard", or a permutation algorithm; each character
+selected is independent of previous or subsequent selections; duplicate
+selections are possible by design.
+
+Return value is a string of size C<$length>, of characters chosen at random
+from the 'bag' string.
+
+It is perfectly legal to pass a Unicode string as the "bag", and in that case,
+the yield will include Unicode characters selected from those passed in via the
+bag string.
+
+This function is useful for random string generation such as temporary
+random passwords.
+
 =head2 random_bytes_base64
 
     my $random_bytes_b64           = random_bytes_base64( $num_bytes );
@@ -271,31 +300,6 @@ encoding (as produced by L<MIME::QuotedPrint>'s C<encode_qp> function.  The
 default configuration uses C<\n> as a line break after every 76 characters, and
 the "binmode" setting is used to guarantee a lossless round trip.  If no line
 break is wanted, pass an empty string as C<$eol>.
-
-=head2 random_string_from
-
-    my $random_bytes = random_string_from( $bag, $length );
-    my $random_bytes = random_string_from( 'abc', 50 );
-
-C<$bag> is a string of digits from which C<random_string_from> may choose in
-building a random string.  We call it a 'bag', because it's permissible to have
-repeated digits in the bag (if not, we could call it a set).  Repeated digits
-get more weight.  For example, C<random_string_from( 'aab', 1 )> would have a
-66.67% chance of returning an 'a', and a 33.33% chance of returning a 'b'.
-
-Also, there's nothing preventing the same digit from being chosen more than
-once.  That is, we're not drawing and discarding cards.  Each digit in the
-return value string has an equal chance of landing on any digit in the 'bag'.
-
-Return value is a string of size C<$length>, of characters chosen at random
-from the 'bag' string.
-
-It is perfectly legal to pass a Unicode string as the "bag", and in that case,
-the yield will include Unicode characters selected from those passed in via the
-bag string.
-
-This function is useful for random string generation such as temporary
-random passwords.
 
 =head1 CONFIGURATION
 
@@ -345,13 +349,8 @@ It's also hard to generate strong (ie, secure) random bytes in a way that works
 across a wide variety of platforms.  A primary goal for this module is to
 provide cryptographically secure pseudo-random bytes.  A secondary goal is to
 provide a simple user experience (thus reducing the propensity for getting it
-wrong).  A terciary goal (and one that will never be permitted to compromise the
-primary goal) is to minimize the dependencies required to achieve the primary
-and secondary goals.
-
-To re-iterate: We want secure random bytes, we want ease of use, and if we can
-get both while minimizing the dependencies, that would be nice, but is not a
-requirement.
+wrong).  A terciary goal is to minimize the dependencies required to achieve the
+primary and secondary goals, to the extent that is practical.
 
 This module steals some code from L<Math::Random::Secure>.  That module is an
 excellent resource, but implements a broader range of functionality than is

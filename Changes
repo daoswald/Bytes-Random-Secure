@@ -1,5 +1,11 @@
 Revision history for Bytes::Random::Secure
 
+0.10 2012-12-05
+  - Fixed a few issues where v0.10 broke compatibility with Perls older than
+    v5.10. (Removed // operator.)
+  - POD improvements.
+  - Added a few entries in MANIFEST.SKIP.
+  
 0.10 2012-12-04
   - Better handling of random_bytes() (no parameter passed): Now defaults to
     zero bytes explicitly, so we don't get "uninitialized values" warnings.
