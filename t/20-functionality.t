@@ -103,5 +103,7 @@ ok( random_bytes_qp(100) =~ m/^[^\n]{1,76}\n/,
 ok( random_bytes_qp(128, q{}) =~ /^[^\n]+$/,
     'random_bytes_qp passes EOL delimiter correctly.' );
 
+is( length random_bytes(), 0,
+    'random_bytes(): No param defaults to zero bytes.' );
 
-done_testing;
+done_testing();

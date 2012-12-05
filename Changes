@@ -1,5 +1,15 @@
 Revision history for Bytes::Random::Secure
 
+0.10 2012-12-04
+  - Better handling of random_bytes() (no parameter passed): Now defaults to
+    zero bytes explicitly, so we don't get "uninitialized values" warnings.
+  - Added random_string_from($bag,$length) function.
+  - Added tests for no param list, as well as for new random_string_from()
+    function and its support functions.
+  - POD enhancements.
+  - Removed bytes pragma; it wasn't necessary, and prevented support for
+    unicode code points in random_string_from()'s bag.
+
 0.09 2012-11-02
   - "Changes" is now CPAN::Changes::Spec compliant.
   - Added t/09-changes.t to verify spec compliance.

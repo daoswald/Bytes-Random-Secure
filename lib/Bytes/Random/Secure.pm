@@ -2,7 +2,8 @@ package Bytes::Random::Secure;
 
 use strict;
 use warnings;
-use bytes;
+use Carp;
+
 use MIME::Base64 'encode_base64';
 use MIME::QuotedPrint 'encode_qp';
 use Math::Random::ISAAC;
@@ -17,23 +18,49 @@ use if ON_WINDOWS, 'Crypt::Random::Source::Strong::Win32';
 
 use Exporter;
 our @ISA       = qw( Exporter );
-our @EXPORT_OK = qw( random_bytes     random_bytes_base64
-  random_bytes_hex random_bytes_qp     );
+
+our @EXPORT_OK = qw(
+  random_bytes
+  random_bytes_base64
+  random_bytes_hex
+  random_bytes_qp
+  random_string_from
+);
+
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.09';
-
-
+our $VERSION = '0.10';
 
 {
     my $RNG = Math::Random::ISAAC->new( _seed() );
 
     sub random_bytes {
-        my $bytes = shift;
+        my $bytes = shift // 0;  # No parameter passed, default to zero bytes.
 
         # 2^32 *is* evenly divisible by 256, so no modulo-bias concern here.
         return join '', map { chr $RNG->irand % 256 } 1 .. $bytes;
     }
+
+
+    sub _ranged_randoms {
+        my $range = shift;
+        my $count = shift // 0;
+        my $divisor = _closest_divisor( $range );
+        my @randoms;
+
+        for my $n ( 1 .. $count ) {
+            my $random;
+
+            do{
+                $random = $RNG->irand % $divisor;
+            } while ( $random >= $range );
+
+            push @randoms, $random;
+        }
+
+        return @randoms;
+    }
+
 }
 
 
@@ -51,8 +78,10 @@ sub random_bytes_qp {
     my ( $bytes, $eof ) = @_;
     return encode_qp random_bytes($bytes), defined($eof) ? $eof : qq{\n}, 1;
 }
+  
 
 # Generate some high-quality long int seeds for Math::Random::ISAAC to use.
+
 sub _seed {
     my $factory = Crypt::Random::Source::Factory->new();
     my $source;
@@ -77,6 +106,46 @@ sub _seed {
     return @seed_ints;
 }
 
+
+# random_bytes_from(), and its support functions (note, _ranged_randoms is
+# handled inside of a lexical closure block, above.
+
+sub random_string_from {
+    my $bag   = shift // '';
+    my $bytes = shift // 0;
+    my $range = length $bag;
+
+    croak "Bag's size must be at least 1 character."
+        if $range < 1;
+    croak "Bag's size was $range, but cannot be longer than 2**32 characters."
+        if $range > 2 ** 32;
+
+    my $rand_bytes = '';
+    for my $random ( _ranged_randoms($range, $bytes) ) {
+        $rand_bytes .= substr( $bag, $random, 1 );
+    }
+
+    return $rand_bytes;
+}
+
+
+sub _closest_divisor {
+  my $range = shift // 0;
+
+  croak "$range must be positive." if $range < 0;
+  croak "$range exceeds irand max limit of 2**32." if $range > 2 ** 32;
+
+  my $n = 0;
+  while( ( my $d = 2 ** $n ) && $n++ <= 32 ) {
+    return $d if $d >= $range;
+  }
+  
+  return;
+}
+
+
+
+
 1;
 
 =pod
@@ -99,6 +168,8 @@ random bytes.
     my $bytes_as_hex = random_bytes_hex(8);
 
     my $bytes_as_quoted_printable = random_bytes_qp(100);
+
+    my $bytes = random_bytes_from( 'abcde', 10 );
 
 =head1 DESCRIPTION
 
@@ -201,6 +272,31 @@ default configuration uses C<\n> as a line break after every 76 characters, and
 the "binmode" setting is used to guarantee a lossless round trip.  If no line
 break is wanted, pass an empty string as C<$eol>.
 
+=head2 random_string_from
+
+    my $random_bytes = random_string_from( $bag, $length );
+    my $random_bytes = random_string_from( 'abc', 50 );
+
+C<$bag> is a string of digits from which C<random_string_from> may choose in
+building a random string.  We call it a 'bag', because it's permissible to have
+repeated digits in the bag (if not, we could call it a set).  Repeated digits
+get more weight.  For example, C<random_string_from( 'aab', 1 )> would have a
+66.67% chance of returning an 'a', and a 33.33% chance of returning a 'b'.
+
+Also, there's nothing preventing the same digit from being chosen more than
+once.  That is, we're not drawing and discarding cards.  Each digit in the
+return value string has an equal chance of landing on any digit in the 'bag'.
+
+Return value is a string of size C<$length>, of characters chosen at random
+from the 'bag' string.
+
+It is perfectly legal to pass a Unicode string as the "bag", and in that case,
+the yield will include Unicode characters selected from those passed in via the
+bag string.
+
+This function is useful for random string generation such as temporary
+random passwords.
+
 =head1 CONFIGURATION
 
 L<Bytes::Random::Secure>'s interface I<keeps it simple>.  There is generally 
@@ -287,6 +383,16 @@ All users can minimize the number of modules loaded upon startup by making sure
 that L<Mouse> is available on their system so that L<Any::Moose> can choose that
 lighter-weight alternative to L<Moose>.  Of course if your application already
 uses Moose, this becomes a non-issue.
+
+A note regarding modulo bias:  Care is taken such that there is no modulo bias
+in the randomness returned either by C<random_bytes> and its siblings, nor by
+C<random_string_from>.  As a matter if fact, this is exactly I<why> the
+C<random_string_from> function is useful.  However, the algorithm to eliminate
+modulo bias can impact the performance of the C<random_string_from> function.
+Any time the length of the bag string is significantly less than the nearest
+greater or equal factor of 2**32, performance suffers.  Unfortunately there is
+no known algorithm that improves upon this situation.  Fortunately, for sanely
+sized strings, it's a minor issue.
 
 =head1 AUTHOR
 

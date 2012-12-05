@@ -16,5 +16,6 @@ t/10-prereqs.t
 t/11-load.t
 t/20-functionality.t
 t/21-bytes_random_tests.t
+t/22-random_string_from.t
 examples/random-sha512.pl
 

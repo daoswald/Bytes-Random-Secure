@@ -4,7 +4,7 @@
       "David Oswald <davido@cpan.org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.120630",
+   "generated_by" : "ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "perl_5"
    ],
@@ -32,6 +32,7 @@
       },
       "runtime" : {
          "requires" : {
+            "Carp" : "0",
             "Crypt::Random::Source" : "0",
             "MIME::Base64" : "0",
             "MIME::QuotedPrint" : "0",
@@ -42,5 +43,5 @@
       }
    },
    "release_status" : "stable",
-   "version" : "0.09"
+   "version" : "0.10"
 }
