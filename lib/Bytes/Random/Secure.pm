@@ -29,16 +29,42 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
+# Instantiate our random number generator inside of a lexical closure, limiting
+# the scope of the object, as well as its visibility to the outside.
 {
     my $RNG = Math::Random::ISAAC->new( _seed() );
 
+    # Original random_bytes() (superceded by Dana's version, below).
+    #    sub random_bytes {
+    #        my $bytes = shift;
+    #        $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
+    #        # 2^32 *is* evenly divisible by 256, so no modulo-bias concern here.
+    #        return join '', map { chr $RNG->irand % 256 } 1 .. $bytes;
+    #    }
+
+    # New and improved version from Dana Jacobsen.
+    # Faster, and makes better use of the full width of M::R::ISAAC's
+    # 32 bit irand().
     sub random_bytes {
         my $bytes = shift;
         $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
-        # 2^32 *is* evenly divisible by 256, so no modulo-bias concern here.
-        return join '', map { chr $RNG->irand % 256 } 1 .. $bytes;
+        my $str = '';
+
+        while ($bytes >= 4) {                 # Utilize irand()'s 32 bits.
+            $str .= pack("L", $RNG->irand);
+            $bytes -= 4;
+        }
+
+        if ($bytes > 0) {
+            my $rval = $RNG->irand;
+
+            $str .= pack("S", ($rval >> 8) & 0xFFFF) if $bytes >= 2; # 16 bits.
+            $str .= pack("C", $rval & 0xFF) if $bytes % 2;           # 8 bits.
+
+        }
+        return $str;
     }
 
     # Generate a list of $count random numbers between 0 and $range.
@@ -108,7 +134,7 @@ sub _seed {
 }
 
 
-# random_bytes_from(), and its support functions (note, _ranged_randoms is
+# random_string_from(), and its support functions (note, _ranged_randoms is
 # handled inside of a lexical closure block, above.
 
 sub random_string_from {
@@ -176,7 +202,7 @@ random bytes.
 
 =head1 DESCRIPTION
 
-L<Bytes::Random::Secure> provides four functions that can be used anytime you
+L<Bytes::Random::Secure> provides five functions that can be used anytime you
 need a string (or MIME Base64 representation, or hex-digits representation, or
 Quoted Printable representation) of a specific number of random bytes.
 
@@ -189,9 +215,9 @@ to generate the initial seeds for Math::Random::ISAAC.  On Windows platforms
 Crypt::Random::Source needs L<Crypt::Random::Source::Strong::Win32> to obtain
 high quality seeds.
 
-In addition to providing C<random_bytes()>, this module also provides three
-functions not found in L<Bytes::Random>: C<random_bytes_base64()>, 
-C<random_bytes_hex>, and C<random_bytes_qp>.
+In addition to providing C<random_bytes()>, this module also provides four
+functions not found in L<Bytes::Random>: C<random_string_from>,
+C<random_bytes_base64()>, C<random_bytes_hex>, and C<random_bytes_qp>.
 
 =head1 RATIONALE
 
@@ -200,6 +226,8 @@ provide a generalized tool that can fit into many applications.  You're free
 to come up with your own use-cases, but there are several obvious ones:
 
 =over 4
+
+=item * Generating temporary passphrases (C<random_string_from()>).
 
 =item * Generating per-account random salt to be hashed along with passphrases 
 (and stored alongside them) to prevent rainbow table attacks.
@@ -212,18 +240,19 @@ or sampling.
 
 =back
 
-Why this module?  This module uses several high quality CPAN tools to first
+Why this module?  This module uses several well-designed CPAN tools to first
 generate strong random seeds, and then to instantiate a high quality random
 number factory based on the strong seed.  The code in this module really just
-glues together the building blocks.  However, it's taken a good deal of research
-to come up with what I feel is a strong tool-chain that isn't going to fall back
-to a weaker state on some systems.  Hopefully others can benefit from this work.
+glues together the building blocks.  However, it has taken a good deal of
+research to come up with what I feel is a strong tool-chain that isn't going to
+fall back to a weaker state on some systems.  Hopefully others can benefit from
+this work.
 
 =head1 EXPORTS
 
 By default C<random_bytes> is the only function exported.  Optionally
-C<random_bytes_base64>, C<random_bytes_hex>, and C<random_bytes_qp>
-may be exported.
+C<random_string_from>, C<random_bytes_base64>, C<random_bytes_hex>,
+and C<random_bytes_qp> may be exported.
 
 =head1 FUNCTIONS
 
