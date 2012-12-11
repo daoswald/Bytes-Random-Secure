@@ -468,9 +468,20 @@ L<http://search.cpan.org/dist/Bytes-Random-Secure/>
 
 =head1 ACKNOWLEDGEMENTS
 
-L<Mojolicious> for providing the motivation from its "App secret".
-L<Bytes::Random> for providing a starting-point for this module.
-L<Math::Random::Secure> for providing an excellent random number tool.
+L<Mojolicious> for motivating me to investigate this stuff as a means of
+auto-generating a secure "App secret".
+
+L<Bytes::Random> for implementing a nice interface that this module patterns
+itself after.
+
+L<Math::Random::Secure> for providing an excellent random number tool, and
+informative documentation: I recommend reading through it's docs; most of what
+is contained in the "IMPLEMENTATION DETAILS" section is applicable to this
+module as well, as some of this module's code and dependency chain was borrowed
+from Math::Random::Secure.
+
+Dana Jacobsen ( I<danaj on CPAN> ) for providing a patch that significantly
+improved the performance of C<random_bytes>.
 
 =head1 LICENSE AND COPYRIGHT
 
