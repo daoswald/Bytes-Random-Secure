@@ -9,6 +9,7 @@ use MIME::QuotedPrint 'encode_qp';
 use Math::Random::ISAAC;
 use Crypt::Random::Source::Factory;
 
+# We can only test this condition by using a Windows system.
 use constant ON_WINDOWS => $^O =~ /Win32/i ? 1 : 0;    ## no critic (constant)
 use constant SEED_SIZE => 64;                          ## no critic (constant)
 
@@ -146,7 +147,8 @@ sub random_string_from {
     croak "Bag's size must be at least 1 character."
         if $range < 1;
     croak "Bag's size was $range, but cannot be longer than 2**32 characters."
-        if $range > 2 ** 32;
+        if $range > 2 ** 32;  # Unless we want to generate a 512GB string, we
+                              # can't test this condition.
 
     my $rand_bytes = '';
     for my $random ( _ranged_randoms($range, $bytes) ) {
