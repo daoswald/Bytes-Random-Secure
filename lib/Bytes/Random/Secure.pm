@@ -2,6 +2,7 @@ package Bytes::Random::Secure;
 
 use strict;
 use warnings;
+use 5.006000;
 use Carp;
 
 use MIME::Base64 'encode_base64';
@@ -30,20 +31,12 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 # Instantiate our random number generator inside of a lexical closure, limiting
 # the scope of the object, as well as its visibility to the outside.
 {
     my $RNG = Math::Random::ISAAC->new( _seed() );
-
-    # Original random_bytes() (superceded by Dana's version, below).
-    #    sub random_bytes {
-    #        my $bytes = shift;
-    #        $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
-    #        # 2^32 *is* evenly divisible by 256, so no modulo-bias concern here.
-    #        return join '', map { chr $RNG->irand % 256 } 1 .. $bytes;
-    #    }
 
     # New and improved version from Dana Jacobsen.
     # Faster, and makes better use of the full width of M::R::ISAAC's
@@ -483,7 +476,8 @@ module as well, as some of this module's code and dependency chain was borrowed
 from Math::Random::Secure.
 
 Dana Jacobsen ( I<danaj on CPAN> ) for providing a patch that significantly
-improved the performance of C<random_bytes>.
+improved the performance of C<random_bytes>, and for offering suggestions on
+better supporting Perl versions back through 5.6.x.
 
 =head1 LICENSE AND COPYRIGHT
 

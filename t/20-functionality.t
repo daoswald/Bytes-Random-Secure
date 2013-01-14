@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
+use 5.006000;
 
 BEGIN {
   use_ok( 'Bytes::Random::Secure',
@@ -65,7 +66,7 @@ foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
       "random_bytes_hex($want) returned $correct hex digits." );
 };
 
-ok( random_bytes_hex(128) =~ /^\p{ahex}+$/,
+ok( random_bytes_hex(128) =~ /^[[:xdigit:]]+$/,
     'random_bytes_hex only produces hex digits.' );
 
 is( length random_bytes_base64(-1), 0,
