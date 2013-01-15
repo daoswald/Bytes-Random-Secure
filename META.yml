@@ -19,10 +19,10 @@ no_index:
     - inc
 requires:
   Carp: 0
-  Crypt::Random::Source: 0
+  Crypt::Random::Seed: 0
   MIME::Base64: 0
   MIME::QuotedPrint: 0
   Math::Random::ISAAC: 0
-  Test::More: 0
+  Test::More: 0.98
   perl: 5.006000
-version: 0.12
+version: 0.13
