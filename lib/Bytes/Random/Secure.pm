@@ -32,7 +32,8 @@ our $VERSION = '0.13';
 # Instantiate our random number generator inside of a lexical closure, limiting
 # the scope of the object, as well as its visibility to the outside.
 {
-    my $RNG = Math::Random::ISAAC->new( _seed() );
+    my $RNG; # Don't instantiate (and seed) the random number generator until
+             # it's needed.
 
     # New and improved version from Dana Jacobsen.
     # Faster, and makes better use of the full width of M::R::ISAAC's
@@ -40,6 +41,10 @@ our $VERSION = '0.13';
     sub random_bytes {
         my $bytes = shift;
         $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
+
+        # Lazily seed the RNG so we don't waste available strong entropy.
+        $RNG  = Math::Random::ISAAC->new( _seed() ) unless defined $RNG;
+        
         my $str = '';
 
         while ($bytes >= 4) {                 # Utilize irand()'s 32 bits.
@@ -61,7 +66,11 @@ our $VERSION = '0.13';
     sub _ranged_randoms {
         my( $range, $count ) = @_;
         $count = defined $count ? $count : 0;
-        
+
+        # Lazily seed the RNG so we don't waste available strong entropy.
+        $RNG  = Math::Random::ISAAC->new( _seed() )
+          unless defined $RNG;
+
         my $divisor = _closest_divisor( $range );
         my @randoms;
 
