@@ -13,6 +13,8 @@ use MIME::QuotedPrint 'encode_qp';
 
 # Seed size is sixteen individual 32-bit long unsigned integers.
 use constant SEED_SIZE => 16;                          ## no critic (constant)
+use constant SEED_MIN  => 2;                           ## no critic (constant)
+use constant SEED_MAX  => 16;                          ## no critic (constant) 
 
 use Exporter;
 our @ISA       = qw( Exporter );
@@ -131,8 +133,9 @@ sub _seed {
 
     # Determine how many longs we want for our seed (SEED_SIZE is default).
     if( exists $init->{Count} ) {
-      $seed_size = $init->{Count} < 4 ? 4 : $init->{Count};  #  4 longs min.
-      $seed_size = $init->{Count} > 16 ? 16 : $seed_size;    # 16 longs max.
+      # Round out-of-range to be in-range.
+      $seed_size = $init->{Count} < SEED_MIN ? SEED_MIN : $init->{Count};
+      $seed_size = $init->{Count} > SEED_MAX ? SEED_MAX : $seed_size;
       delete $init->{Count}; # We don't want to pass this param thru to
                              # Crypt::Random::Seed.
     }

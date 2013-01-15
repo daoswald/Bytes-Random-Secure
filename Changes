@@ -14,8 +14,10 @@ Revision history for Bytes::Random::Secure
     constructor.
   - Added a config_seed() class method to facilitate configuration of
     the Crypt::Random::Seed object used in seeding the ISAAC algorithm.
+  - Minimum seed size set to 2-longs, max to 16-longs (default).
   - Documented how to configure the seeding, and explained why it might be
     useful to do so (drain less system entropy).
+  - Added META.* tests.
 
 0.12 2012-12-09
   - Applied rewrite of random_bytes() from Dana Jacobsen, that improves

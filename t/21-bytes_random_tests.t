@@ -13,6 +13,8 @@ if ( $@ ) {
 
 use_ok('Bytes::Random::Secure');
 
+# Default seed entropy of 16 is more than we need in testing.
+Bytes::Random::Secure->config_seed( Count => 4 );
 
 for( 1..40 )
 {

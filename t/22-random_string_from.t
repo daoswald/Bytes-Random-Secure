@@ -8,8 +8,9 @@ use Test::More;
 use Bytes::Random::Secure qw( random_string_from );
 
 # We'll use a weaker source because we're testing for function, quality
-# isn't being contested here.
-Bytes::Random::Secure->config_seed( NonBlocking => 1, Count => 4 );
+# isn't being contested here.  Week=>1 should assure we use /dev/urandom where
+# it's available.  Low entropy chosen to preserve our source.
+Bytes::Random::Secure->config_seed( NonBlocking => 1, Weak => 1, Count => 2 );
 
 
 # Tests for _closest_divisor().

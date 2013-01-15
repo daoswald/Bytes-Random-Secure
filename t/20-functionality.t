@@ -12,7 +12,7 @@ BEGIN {
   );
 
   # Minimum "strong" entropy: We're testing functionality, not quality here.
-  Bytes::Random::Secure->config_seed( Count => 4 );
+  Bytes::Random::Secure->config_seed( Count => 2 );
                      
 }
 
@@ -34,12 +34,12 @@ foreach my $seed ( @seeds ) {
   is( $seed >= 0 && $seed < 2**32, 1, "Seed $seed is in range." );
 }
 
-@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 4 } );
-is( scalar @seeds, 4, 'Requested four longs, got four.' );
+@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 2 } );
+is( scalar @seeds, 2, 'Requested two longs, got two.' );
 
-@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 3 } );
-is( scalar @seeds, 4, 'Requesting seed size smaller than four longs reverts' .
-    ' to minimum of four.' );
+@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 1 } );
+is( scalar @seeds, 2, 'Requesting seed size smaller than two longs reverts' .
+    ' to minimum of two.' );
 
 @seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 17 } );
 is( scalar @seeds, 16, 'Requesting seed size larger than 16 longs reverts' .
