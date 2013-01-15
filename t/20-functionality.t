@@ -19,7 +19,7 @@ can_ok( 'Bytes::Random::Secure',
 
 
 my @seeds = Bytes::Random::Secure::_seed;
-is( scalar @seeds, 16, 'Received 16 seeds from _seed' );
+is( scalar @seeds, 16, 'Received 16 longs from _seed' );
 foreach my $seed ( @seeds ) {
   ok( looks_like_number( $seed ), 'All seeds should "look like numbers"' );
   is( $seed, int( $seed ), 'All seeds are integers.' );
