@@ -8,7 +8,7 @@ BEGIN {
     use_ok('MIME::Base64');
     use_ok('MIME::QuotedPrint');
     use_ok('Math::Random::ISAAC');
-    use_ok('Crypt::Random::Source');
+    use_ok('Crypt::Random::Seed');
 }
 
 done_testing();

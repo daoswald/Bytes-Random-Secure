@@ -3,6 +3,8 @@
 use strict;
 use warnings;
 use Test::More;
+use Scalar::Util qw( looks_like_number );
+
 use 5.006000;
 
 BEGIN {
@@ -19,6 +21,9 @@ can_ok( 'Bytes::Random::Secure',
 my @seeds = Bytes::Random::Secure::_seed;
 is( scalar @seeds, 16, 'Received 16 seeds from _seed' );
 foreach my $seed ( @seeds ) {
+  ok( looks_like_number( $seed ), 'All seeds should "look like numbers"' );
+  is( $seed, int( $seed ), 'All seeds are integers.' );
+  ok( $seed =~ m/^[0-9]+$/, 'All seeds contain only numeric digits.' );
   is( $seed >= 0 && $seed < 2**32, 1, "Seed $seed is in range." );
 }
 

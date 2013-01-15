@@ -11,3 +11,4 @@ BEGIN {
 }
 
 diag( "Testing Bytes::Random::Secure $Bytes::Random::Secure::VERSION, Perl $], $^X" );
+
