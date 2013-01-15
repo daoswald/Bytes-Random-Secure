@@ -4,7 +4,7 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 my %PREREQ_PM = (
-    'Test::More'            => '0',    # Core.
+    'Test::More'            => '0.98', # Core, modern version.
     'Crypt::Random::Seed'   => '0',    # Provides a high quality seed.
     'Math::Random::ISAAC'   => '0',    # Provides our random number generator.
     'MIME::Base64'          => '0',    # Core.

@@ -3,7 +3,6 @@
 use strict;
 use warnings;
 use Test::More;
-use Scalar::Util qw( looks_like_number );
 
 use 5.006000;
 
@@ -22,17 +21,16 @@ can_ok( 'Bytes::Random::Secure',
       config_seed/ );
 
 # For testing purposes only.....
-# A callback for Crypt::Random::Source::new().  Accepts number of bytes desired,
+# A callback for Crypt::Random::Seed::new().  Accepts number of bytes desired,
 # and returns a string of that length which is unpacked as our seed.
-# This enables us to test _seed() without draining the entropy pool.
+# This enables us to test _seed() without draining the entropy source.
 my $source = sub { return join( '', 'a' x shift ); };
 
 my @seeds = Bytes::Random::Secure::_seed( { Source => $source } );
 is( scalar @seeds, 16, 'Received 16 longs from _seed' );
 foreach my $seed ( @seeds ) {
-  ok( looks_like_number( $seed ), 'All seeds should "look like numbers"' );
-  is( $seed, int( $seed ), 'All seeds are integers.' );
-  ok( $seed =~ m/^[0-9]+$/, 'All seeds contain only numeric digits.' );
+  ok( defined $seed && $seed ne '' && $seed !~ tr/0123456789//c,
+      'All seeds should be integers' );
   is( $seed >= 0 && $seed < 2**32, 1, "Seed $seed is in range." );
 }
 

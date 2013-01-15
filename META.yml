@@ -1,47 +1,28 @@
-{
-   "abstract" : "Perl extension to generate cryptographically-secure",
-   "author" : [
-      "David Oswald <davido@cpan.org>"
-   ],
-   "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.120921",
-   "license" : [
-      "perl_5"
-   ],
-   "meta-spec" : {
-      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
-      "version" : "2"
-   },
-   "name" : "Bytes-Random-Secure",
-   "no_index" : {
-      "directory" : [
-         "t",
-         "inc"
-      ]
-   },
-   "prereqs" : {
-      "build" : {
-         "requires" : {
-            "ExtUtils::MakeMaker" : "0"
-         }
-      },
-      "configure" : {
-         "requires" : {
-            "ExtUtils::MakeMaker" : "0"
-         }
-      },
-      "runtime" : {
-         "requires" : {
-            "Carp" : "0",
-            "Crypt::Random::Seed" : "0",
-            "MIME::Base64" : "0",
-            "MIME::QuotedPrint" : "0",
-            "Math::Random::ISAAC" : "0",
-            "Test::More" : "0",
-            "perl" : "5.006000"
-         }
-      }
-   },
-   "release_status" : "stable",
-   "version" : "0.13"
-}
+---
+abstract: 'Perl extension to generate cryptographically-secure'
+author:
+  - 'David Oswald <davido@cpan.org>'
+build_requires:
+  ExtUtils::MakeMaker: 0
+configure_requires:
+  ExtUtils::MakeMaker: 0
+dynamic_config: 1
+generated_by: 'ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.120921'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Bytes-Random-Secure
+no_index:
+  directory:
+    - t
+    - inc
+requires:
+  Carp: 0
+  Crypt::Random::Seed: 0
+  MIME::Base64: 0
+  MIME::QuotedPrint: 0
+  Math::Random::ISAAC: 0
+  Test::More: 0.98
+  perl: 5.006000
+version: 0.13
