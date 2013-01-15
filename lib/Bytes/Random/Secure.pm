@@ -30,10 +30,25 @@ our @EXPORT = qw( random_bytes );    ## no critic(export)
 our $VERSION = '0.13';
 
 # Instantiate our random number generator inside of a lexical closure, limiting
-# the scope of the object, as well as its visibility to the outside.
+# the scope of the RNG object, as well as its visibility to the outside.
 {
+
     my $RNG; # Don't instantiate (and seed) the random number generator until
              # it's needed.
+
+    my $seed_configuration;  # If config_seed() is timely called, will hold the
+                             # configuration passed to _seed() ( mostly passed
+                             # through to Crypt::Random::Seed::new() ).
+
+    # Facilitate customization of Crypt::Random::Seed if the RNG hasn't yet been
+    # initialized.
+    sub config_seed {
+      my( $class, %options ) = @_;
+      return if defined $RNG; # Too late to change seeding configuration.
+      $seed_configuration = \%options if keys %options;
+      return defined $seed_configuration;
+    }
+
 
     # New and improved version from Dana Jacobsen.
     # Faster, and makes better use of the full width of M::R::ISAAC's
@@ -43,7 +58,8 @@ our $VERSION = '0.13';
         $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
 
         # Lazily seed the RNG so we don't waste available strong entropy.
-        $RNG  = Math::Random::ISAAC->new( _seed() ) unless defined $RNG;
+        $RNG  = Math::Random::ISAAC->new( _seed( $seed_configuration ) )
+          unless defined $RNG;
         
         my $str = '';
 
@@ -62,13 +78,14 @@ our $VERSION = '0.13';
         return $str;
     }
 
+
     # Generate a list of $count random numbers between 0 and $range.
     sub _ranged_randoms {
         my( $range, $count ) = @_;
         $count = defined $count ? $count : 0;
 
         # Lazily seed the RNG so we don't waste available strong entropy.
-        $RNG  = Math::Random::ISAAC->new( _seed() )
+        $RNG  = Math::Random::ISAAC->new( _seed( $seed_configuration ) )
           unless defined $RNG;
 
         my $divisor = _closest_divisor( $range );
@@ -109,10 +126,23 @@ sub random_bytes_qp {
 # Generate some high-quality long int seeds for Math::Random::ISAAC to use.
 
 sub _seed {
-    my $source = Crypt::Random::Seed->new();
+    my $init = shift;
+    my $seed_size;
+
+    # Determine how many longs we want for our seed (SEED_SIZE is default).
+    if( exists $init->{Count} ) {
+      $seed_size = $init->{Count} < 4 ? 4 : $init->{Count};  #  4 longs min.
+      $seed_size = $init->{Count} > 16 ? 16 : $seed_size;    # 16 longs max.
+      delete $init->{Count}; # We don't want to pass this param thru to
+                             # Crypt::Random::Seed.
+    }
+    else {
+      $seed_size = SEED_SIZE;
+    }
+    my $source = Crypt::Random::Seed->new( defined $init ? %{$init} : () );
     croak 'Unable to obtain a strong seed source from Crypt::Random::Seed.'
       unless defined $source;
-    return $source->random_values(SEED_SIZE); # Sixteen 32-bit unsigned ints.
+    return $source->random_values($seed_size); # Sixteen 32-bit unsigned ints.
 }
 
 
@@ -229,9 +259,9 @@ generate strong random seeds, and then to instantiate a high quality random
 number factory based on the strong seed.  The code in this module really just
 glues together the building blocks.  However, it has taken a good deal of
 research to come up with what I feel is a strong tool-chain that isn't going to
-fall back to a weaker state on some systems.  The interface has been kept simple
-to eliminate potential for misconfiguration.  Hopefully others can benefit from
-this work.
+fall back to a weaker state on some systems.  The interface is designed with
+simplicity in mind, to minimize the potential for misconfiguration.  Hopefully
+others can benefit from this work.
 
 =head1 EXPORTS
 
@@ -315,13 +345,61 @@ default configuration uses C<\n> as a line break after every 76 characters, and
 the "binmode" setting is used to guarantee a lossless round trip.  If no line
 break is wanted, pass an empty string as C<$eol>.
 
+=head2 config_seed
+
+    use Bytes::Random::Secure;
+    Bytes::Random::Secure->config_seed( NonBlocking => 1 );
+    my $random_bytes = random_bytes(16);
+
+This is a class method, and its use is completely optional.  In most cases it
+should be unnecessary to override the default configuration used in seeding
+the ISAAC generator.  However, there are always those special cases, and when
+they arise, it's possible.
+
+C<config_seed> must be invoked I<before> the first call to any of the random
+bytes functions.  Internally the ISAAC generator is only instantiated once, and
+is instantiated (and seeded) lazily; the first time randomness is requested.
+Once the RNG has been used (and consequently instantiated), it is too late to
+change the seeding characteristics.
+
+By default the random number generator is seeded using 64 bytes of entropy from
+the strongest source available on a given system.  Many of the defaults may be
+overridden by passing named parameters to the C<config_seed> B<class method>.
+
+Most of the possible parameters are passed directly through to the constructor
+for L<Crypt::Random::Seed>, and are described in that module's documentation,
+with one exception:
+
+=head3 Count
+
+    Bytes::Random::Secure->config_seed( Count => 4 );
+
+The C<Count> parameter is unique to Bytes::Random::Secure, and specifies how
+many 32-bit (unsigned long) ints will be used in seeding the ISAAC random number
+generator.  The default is sixteen 32-bit values (64 bytes of entropy).  But in
+some cases it may not be necessary, or even wise to pull so many bytes of
+entropy out of C</dev/random> (a blocking source).
+
+Any value between 4 and 16 will be accepted.
+
+Returns true on success, and undef on failure.
+
 =head1 CONFIGURATION
 
 L<Bytes::Random::Secure>'s interface I<keeps it simple>.  There is generally 
 nothing to configure.  This is by design, as it eliminates much of the 
 potential for diminishing the quality of the random byte stream by through
 misconfiguration.  The ISAAC algorithm is used as our factory, seeded with a
-strong source
+strong source.
+
+There may be times when the default seed characteristics carry too heavy a
+burden on system resources.  The default seed is 64 bytes of entropy taken from
+/dev/random (a blocking source on many systems), or via API calls on Windows.
+If /dev/random should become depleted at the time that this module attempts to
+seed the ISAAC generator, there could be delay while additional system entropy
+is generated.  In such circumstances, it is possible to override the default
+seeding characteristics using the C<config_seed> class method.  However, under
+most circumstances, this capability may be safely ignored.
 
 Beginning with Bytes::Random::Secure version 0.13, L<Crypt::Random::Seed>
 provides our strong seed (previously it was Crypt::Random::Source).  This module
@@ -338,6 +416,12 @@ get the same algorithm implemented in C/XS, which will provide better
 performance.  If you need to produce your random bytes more quickly, simply
 installing Math::Random::ISAAC::XS will result in it automatically being used,
 and a pretty good performance improvement will coincide.
+
+And as mentioned earlier in this document, there may be circumstances where
+the performance of the random entropy source prohibits using the module's
+default seeding configuration.  Use the C<config_seed> class method, and read
+the documentation for L<Crypt::Random::Seed> to learn what options are
+available.
 
 Prior to version 0.13, a heavy dependency chain was required for reliably
 and securely seeding the ISAAC generator.  Thanks to Dana Jacobsen's new
@@ -370,6 +454,12 @@ needs a cryptographically sound seed, which we derive from
 L<Crypt::Random::Seed>.  To date, there are no known weaknesses in the ISAAC
 algorithm.  And Crypt::Random::Seed does a very good job of preventing fall-back
 to weak seed sources.
+
+However, it is possible (and has been seen in testing) that the system's random
+entropy source might not have enough entropy in reserve to generate the seed
+requested by this module without blocking.  If you suspect that you're a victim
+of blocking from reads on C</dev/random>, your best option is to manipulate
+the random seed configuration by using the C<config_seed> class method.
 
 A note regarding modulo bias:  Care is taken such that there is no modulo bias
 in the randomness returned either by C<random_bytes> or its siblings, nor by

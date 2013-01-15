@@ -7,6 +7,11 @@ use Test::More;
 
 use Bytes::Random::Secure qw( random_string_from );
 
+# We'll use a weaker source because we're testing for function, quality
+# isn't being contested here.
+Bytes::Random::Secure->config_seed( NonBlocking => 1, Count => 4 );
+
+
 # Tests for _closest_divisor().
 
 my @divisors = (  1,  1,  2,  4,  4,  8,  8,  8,  8,

@@ -11,14 +11,23 @@ BEGIN {
   use_ok( 'Bytes::Random::Secure',
           qw/ random_bytes random_bytes_hex random_bytes_base64 random_bytes_qp/
   );
+
+  # Minimum "strong" entropy: We're testing functionality, not quality here.
+  Bytes::Random::Secure->config_seed( Count => 4 );
+                     
 }
 
 can_ok( 'Bytes::Random::Secure',
   qw/ random_bytes random_bytes_hex random_bytes_base64 random_bytes_qp   _seed
-/ );
+      config_seed/ );
 
+# For testing purposes only.....
+# A callback for Crypt::Random::Source::new().  Accepts number of bytes desired,
+# and returns a string of that length which is unpacked as our seed.
+# This enables us to test _seed() without draining the entropy pool.
+my $source = sub { return join( '', 'a' x shift ); };
 
-my @seeds = Bytes::Random::Secure::_seed;
+my @seeds = Bytes::Random::Secure::_seed( { Source => $source } );
 is( scalar @seeds, 16, 'Received 16 longs from _seed' );
 foreach my $seed ( @seeds ) {
   ok( looks_like_number( $seed ), 'All seeds should "look like numbers"' );
@@ -26,6 +35,17 @@ foreach my $seed ( @seeds ) {
   ok( $seed =~ m/^[0-9]+$/, 'All seeds contain only numeric digits.' );
   is( $seed >= 0 && $seed < 2**32, 1, "Seed $seed is in range." );
 }
+
+@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 4 } );
+is( scalar @seeds, 4, 'Requested four longs, got four.' );
+
+@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 3 } );
+is( scalar @seeds, 4, 'Requesting seed size smaller than four longs reverts' .
+    ' to minimum of four.' );
+
+@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 17 } );
+is( scalar @seeds, 16, 'Requesting seed size larger than 16 longs reverts' .
+    ' to maximum of sixteen.' );
 
 
 foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {

@@ -1,14 +1,22 @@
 Revision history for Bytes::Random::Secure
 
-0.13 2012-01-14
-  - UNDER DEVELOPMENT
+0.13 2012-01-15
   - POD clarification, enhancement.
   - Improved backwards compatibility support for Perl v5.6.x.
   - Eliminated Crypt::Random::Source dependency in favor of Crypt::Random::Seed;
     Thanks to Dana Jacobsen for creating that light-weight and powerful tool.
   - Added some seed tests.
   - Made Test::Pod::Coverage a 'RELEASE_TESTING' only test.
-  
+  - Made seeding and RNG-instantiation "lazy" so that
+    "use Bytes::Random::Secure;" only drains system entropy if random bytes are
+    actually requested.  (Thanks again to Dana Jacobsen for the idea).
+  - Modified _seed() to pass seed configuration through to Crypt::Random::Seed's
+    constructor.
+  - Added a config_seed() class method to facilitate configuration of
+    the Crypt::Random::Seed object used in seeding the ISAAC algorithm.
+  - Documented how to configure the seeding, and explained why it might be
+    useful to do so (drain less system entropy).
+
 0.12 2012-12-09
   - Applied rewrite of random_bytes() from Dana Jacobsen, that improves
     performance while at the same time making better use of the 32 bit random
