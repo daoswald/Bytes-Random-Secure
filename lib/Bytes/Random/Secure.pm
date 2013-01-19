@@ -1,4 +1,4 @@
-## no critic (constant)
+## no critic (constant,unpack)
 package Bytes::Random::Secure;
 
 use strict;
@@ -169,7 +169,7 @@ sub _build_attributes {
       { # Narrow lexical scope for strict 'refs' violations.
 
         my $subname = "get_$arg";
-        no strict 'refs';
+        no strict 'refs';         ## no critic (strict)
 
         # Only generate accessors once. (No "redefined warnings")
         next if defined *{ $subname }{CODE};
