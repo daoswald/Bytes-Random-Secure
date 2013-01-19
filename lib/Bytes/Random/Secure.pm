@@ -1,3 +1,4 @@
+## no critic (constant)
 package Bytes::Random::Secure;
 
 use strict;
@@ -11,184 +12,404 @@ use Crypt::Random::Seed;
 use MIME::Base64 'encode_base64';
 use MIME::QuotedPrint 'encode_qp';
 
-# Seed size is sixteen individual 32-bit long unsigned integers.
-use constant SEED_SIZE => 16;                          ## no critic (constant)
-use constant SEED_MIN  => 2;                           ## no critic (constant)
-use constant SEED_MAX  => 16;                          ## no critic (constant) 
-
 use Exporter;
-our @ISA       = qw( Exporter );
+our @ISA = qw( Exporter );
 
 our @EXPORT_OK = qw(
-  random_bytes
-  random_bytes_base64
-  random_bytes_hex
-  random_bytes_qp
-  random_string_from
+  random_bytes          random_bytes_lite
+  random_bytes_hex      random_bytes_hex_lite
+  random_bytes_base64   random_bytes_base64_lite
+  random_bytes_qp       random_bytes_qp_lite
+  random_string_from    random_string_from_lite
 );
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
 our $VERSION = '0.13';
 
-# Instantiate our random number generator inside of a lexical closure, limiting
-# the scope of the RNG object, as well as its visibility to the outside.
-{
+# Seed size: 512 bits is sixteen 32-bit integers.
+use constant SEED_SIZE => 512;       # In bits
+use constant SEED_MIN  => 64;
+use constant SEED_MAX  => 512;
+use constant PRNG      => 'ISAAC';
 
-    my $RNG; # Don't instantiate (and seed) the random number generator until
-             # it's needed.
 
-    my $seed_configuration;  # If config_seed() is timely called, will hold the
-                             # configuration passed to _seed() ( mostly passed
-                             # through to Crypt::Random::Seed::new() ).
+use constant OO_ATTRIBS => {
+    Weak        => 0,            # Boolean. (0)            Crypt::Random::Seed
+    NonBlocking => 0,            # Boolean. (0)            Crypt::Random::Seed
+    Only        => undef,        # Aref of strings.        Crypt::Random::Seed
+    Never       => undef,        # Aref of strings.        Crypt::Random::Seed
+    Source      => undef,        # Subref or ARef.         Crypt::Random::Seed
+    PRNG        => PRNG,         # String. Alt RNG.        Internal (ISAAC)
+    Bits        => SEED_SIZE,    # Seed 64 <= Bits <= 512. Internal (512)
+};
 
-    # Facilitate customization of Crypt::Random::Seed if the RNG hasn't yet been
-    # initialized.
-    sub config_seed {
-      my( $class, %options ) = @_;
-      return if defined $RNG; # Too late to change seeding configuration.
-      $seed_configuration = \%options if keys %options;
-      return defined $seed_configuration;
+# Function interface seed attributes (standard, and lite).
+use constant FUNC_STD => {
+    Weak        => 0,
+    NonBlocking => 0,
+    Bits        => 256,
+};
+
+
+use constant FUNC_LITE => {
+  Weak      => 1,
+  NonBlocking => 1,
+  Bits        => 128,
+};
+
+
+use constant CRYPT_RANDOM_SEED_OPTS =>
+  [ qw( Weak NonBlocking Only Never Source ) ];
+
+
+# OO interface class/object methods:
+
+
+# Constructor
+sub new {
+    my ( $class, @config ) = @_;
+
+    my $self = bless {}, $class;
+
+    my $args_href = $self->_build_args(@config);
+    $self->_build_attributes($args_href);
+
+    return $self;
+}
+
+
+sub _build_args {
+    my ( $self, @args ) = @_;
+
+    @args = %{ $args[0] } if ref $args[0] eq 'HASH';
+
+    croak "Illegal argument list; key => value pairs expected."
+      if @args % 2;
+
+    my %args = $self->_validate_args( OO_ATTRIBS, @args );
+
+    if ( exists $args{Bits} ) {
+        $args{Bits} = $self->_round_bits_to_ge_32( $args{Bits} );
+        $args{Bits} = $self->_constrain_bits( $args{Bits}, SEED_MIN, SEED_MAX );
     }
 
+    return \%args;
+}
 
-    # New and improved version from Dana Jacobsen.
-    # Faster, and makes better use of the full width of M::R::ISAAC's
-    # 32 bit irand().
-    sub random_bytes {
-        my $bytes = shift;
-        $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
 
-        # Lazily seed the RNG so we don't waste available strong entropy.
-        $RNG  = Math::Random::ISAAC->new( _seed( $seed_configuration ) )
-          unless defined $RNG;
-        
-        my $str = '';
+# _build_args() helpers:
 
-        while ($bytes >= 4) {                 # Utilize irand()'s 32 bits.
-            $str .= pack("L", $RNG->irand);
-            $bytes -= 4;
-        }
+# Verify drop illegal or 'undef' args.
+sub _validate_args {
+  my( $self, $legal_args_href, %args ) = @_;
 
-        if ($bytes > 0) {
-            my $rval = $RNG->irand;
+  # Iterate through input args.
+  while( my ( $arg_key, $arg_value ) = each %args ) {
 
-            $str .= pack("S", ($rval >> 8) & 0xFFFF) if $bytes >= 2; # 16 bits.
-            $str .= pack("C", $rval & 0xFF) if $bytes % 2;           # 8 bits.
-
-        }
-        return $str;
+    # Disqualify if not in white list.
+    if( ! exists ${ OO_ATTRIBS() }{$arg_key} ) {
+      carp "Illegal argument ($arg_key) will be ignored.";
+      delete $args{$arg_key};
+      next;
     }
 
-
-    # Generate a list of $count random numbers between 0 and $range.
-    sub _ranged_randoms {
-        my( $range, $count ) = @_;
-        $count = defined $count ? $count : 0;
-
-        # Lazily seed the RNG so we don't waste available strong entropy.
-        $RNG  = Math::Random::ISAAC->new( _seed( $seed_configuration ) )
-          unless defined $RNG;
-
-        my $divisor = _closest_divisor( $range );
-        my @randoms;
-
-        for my $n ( 1 .. $count ) {
-            my $random;
-
-            do{
-                $random = $RNG->irand % $divisor;
-            } while ( $random >= $range );
-
-            push @randoms, $random;
-        }
-
-        return @randoms;
+    # Disqualify if undef passed.
+    if( ! defined $arg_value ) {
+      carp "Undefined value specified for attribute ($arg_key). "
+           . "Attribute will be ignored.";
+      delete $args{$arg_key};
     }
-
+  }
+  return %args;
 }
 
 
-sub random_bytes_base64 {
-    my ( $bytes, $eof ) = @_;
-    return encode_base64 random_bytes($bytes), defined($eof) ? $eof : qq{\n};
+# Round bits parameter to nearest greater or equal 32-bit "long".
+sub _round_bits_to_ge_32 {
+  my( $self, $bits ) = @_;
+
+  if( $bits % 32 ) {
+    carp "Bits field must be a multiple of 32.  Rounding up.";
+    $bits = int( ( $bits + 32 ) / 32 ) * 8;
+  }
+
+  return $bits;
 }
 
-sub random_bytes_hex {
-    my $bytes = shift;
-    return unpack 'H*', random_bytes($bytes);
-}
 
-sub random_bytes_qp {
-    my ( $bytes, $eof ) = @_;
-    return encode_qp random_bytes($bytes), defined($eof) ? $eof : qq{\n}, 1;
-}
+# Constrain bits argument to a reasonable range.
+sub _constrain_bits {
+  my( $self, $bits, $min, $max ) = @_;
+
+  if( $bits < $min ) {
+    carp "Bits field must be be >=64 (two longs). Rounding up.";
+    $bits = $min;
+  }
+  elsif( $bits > $max ) {
+    carp "Bits field must be <= 512 (sixteen longs). Rounding down.";
+    $bits = $max;
+  }
+  # No need for an 'else' here.
   
+  return $bits;
+}
 
-# Generate some high-quality long int seeds for Math::Random::ISAAC to use.
 
-sub _seed {
-    my $init = shift;
-    my $seed_size;
+# Build accessors dynamically; everything in OO_ATTRIBS gets an accessor.
+# Also create a placeholder for the RNG.
+sub _build_attributes {
+    my ( $self, $args ) = @_;
+    while ( my ( $arg, $default ) = each %{ OO_ATTRIBS() } ) {
 
-    # Determine how many longs we want for our seed (SEED_SIZE is default).
-    if( exists $init->{Count} ) {
-      # Round out-of-range to be in-range.
-      $seed_size = $init->{Count} < SEED_MIN ? SEED_MIN : $init->{Count};
-      $seed_size = $init->{Count} > SEED_MAX ? SEED_MAX : $seed_size;
-      delete $init->{Count}; # We don't want to pass this param thru to
-                             # Crypt::Random::Seed.
+      # Attributes may be set via new(), or the default accepted.
+      $self->{$arg} = exists $args->{$arg} ? $args->{$arg} : $default;
+
+      # Build the accessor.
+      { # Narrow lexical scope for strict 'refs' violations.
+
+        my $subname = "get_$arg";
+        no strict 'refs';
+
+        # Only generate accessors once. (No "redefined warnings")
+        next if defined *{ $subname }{CODE};
+        *{ $subname } = sub { return shift->{$arg} };    # Accessors.
+
+      }
     }
-    else {
-      $seed_size = SEED_SIZE;
-    }
-    my $source = Crypt::Random::Seed->new( defined $init ? %{$init} : () );
+    $self->{_RNG} = undef;    # Lazy initialization.
+    return $self;
+}
+
+
+# Get a seed and use it to instantiate a RNG.
+# Note: Currently we specify only Math::Random::ISAAC.  However, the PRNG
+# object attribute may be used in the future to specify alternate RNG's.
+sub _instantiate_rng {
+    my $self = shift;
+
+    my ( %seed_opts ) = $self->_build_seed_options;
+    my @seeds = $self->_generate_seed( %seed_opts );
+    $self->{_RNG} = Math::Random::ISAAC->new(@seeds);
+
+    return $self->{_RNG};
+}
+
+
+# Set up seed options for Crypt::Random::Seed
+sub _build_seed_options {
+  my( $self ) = @_;
+
+  my %crs_opts;
+
+  # CRYPT_RANDOM_SEED_OPTS enumerates the options that Crypt::Random::Seed
+  # supports.  We have already built object attributes for those options.
+  foreach my $opt ( @{ CRYPT_RANDOM_SEED_OPTS() } ) {
+      $crs_opts{$opt} = $self->{$opt} if defined $self->{$opt};
+  }
+
+  return %crs_opts;
+}
+
+
+# Use Crypt::Random::Seed to generate some high-quality long int
+# seeds for Math::Random::ISAAC.
+sub _generate_seed {
+    my ( $self, $options_href ) = @_;
+
+    my $seed_size = $self->get_Bits / 32;
+
+    my %options_hash;
+    %options_hash = %{$options_href} if ref $options_href eq 'HASH';
+
+    my $source = Crypt::Random::Seed->new(%options_hash);
+
     croak 'Unable to obtain a strong seed source from Crypt::Random::Seed.'
       unless defined $source;
-    return $source->random_values($seed_size); # Sixteen 32-bit unsigned ints.
+
+    return $source->random_values($seed_size);   # Sixteen 32-bit unsigned ints.
 }
 
 
-# random_string_from(), and its support functions (note, _ranged_randoms is
-# handled inside of a lexical closure block, above.
+# Random bytes string.
+sub bytes {
+  my( $self, $bytes ) = @_;
+  $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
 
-sub random_string_from {
-    my( $bag, $bytes ) = @_;
-    $bag      = defined $bag ? $bag : '';
-    $bytes    = defined $bytes ? $bytes : 0;
-    my $range = length $bag;
+  $self->_instantiate_rng unless defined $self->{_RNG};
 
-    croak "Bag's size must be at least 1 character."
-        if $range < 1;
-    croak "Bag's size was $range, but cannot be longer than 2**32 characters."
-        if $range > 2 ** 32;  # Unless we want to generate a 512GB string, we
-                              # can't test this condition.
+  my $str = '';
 
-    my $rand_bytes = '';
-    for my $random ( _ranged_randoms($range, $bytes) ) {
-        $rand_bytes .= substr( $bag, $random, 1 );
+  while ( $bytes >= 4 ) {                  # Utilize irand()'s 32 bits.
+    $str .= pack( "L", $self->{_RNG}->irand );
+    $bytes -= 4;
+  }
+
+  if ( $bytes > 0 ) {
+    my $rval = $self->{_RNG}->irand;
+
+    $str .= pack( "S", ( $rval >> 8 ) & 0xFFFF )
+      if $bytes >= 2;                    # 16 bits.
+    $str .= pack( "C", $rval & 0xFF ) if $bytes % 2;    # 8 bits.
+
+  }
+  return $str;
+}
+
+# Base64 encoding of random byte string.
+sub bytes_base64 {
+  my ( $self, $bytes, $eof ) = @_;
+  return encode_base64 $self->bytes($bytes), defined($eof) ? $eof : qq{\n};
+}
+
+# Hex digits representing random byte string (No whitespace, no '0x').
+sub bytes_hex {
+  my ( $self, $bytes ) = @_;
+  return unpack 'H*', $self->bytes($bytes);
+}
+
+# Quoted Printable representation of random byte string.
+sub bytes_qp {
+  my ( $self, $bytes, $eof ) = @_;
+  return encode_qp $self->bytes($bytes), defined($eof) ? $eof : qq{\n}, 1;
+}
+
+
+sub string_from {
+  my( $self, $bag, $bytes ) = @_;
+  $bag   = defined $bag   ? $bag   : '';
+  $bytes = defined $bytes ? $bytes : 0;
+  my $range = length $bag;
+
+  croak "Bag's size must be at least 1 character."
+    if $range < 1;
+  croak "Bag's size was $range, but cannot be longer than 2**32 characters."
+    if $range > 2**32;    # Unless we want to generate a 512GB string, we
+                          # can't test this condition.
+
+  my $rand_bytes = '';
+  for my $random ( $self->_ranged_randoms( $range, $bytes ) ) {
+      $rand_bytes .= substr( $bag, $random, 1 );
+  }
+
+  return $rand_bytes;
+}
+
+# Helpers for string_from()
+
+sub _ranged_randoms {
+    my ( $self, $range, $count ) = @_;
+    $count = defined $count ? $count : 0;
+
+    # Lazily seed the RNG so we don't waste available strong entropy.
+    $self->_instantiate_rng unless defined $self->{_RNG};
+
+    my $divisor = $self->_closest_divisor($range);
+    my @randoms;
+
+    for my $n ( 1 .. $count ) {
+        my $random;
+
+        do {
+            $random = $self->{_RNG}->irand % $divisor;
+        } while ( $random >= $range );
+
+        push @randoms, $random;
     }
 
-    return $rand_bytes;
+    return @randoms;
 }
-
 
 sub _closest_divisor {
-  my $range = shift;
-  $range = defined $range ? $range : 0;
-  
-  croak "$range must be positive." if $range < 0;
-  croak "$range exceeds irand max limit of 2**32." if $range > 2 ** 32;
+    my ( $self, $range ) = @_;
+    $range = defined $range ? $range : 0;
 
-  my $n = 0;
-  while( ( my $d = 2 ** $n ) && $n++ <= 32 ) {
-    return $d if $d >= $range;
-  }
-  
-  return;
+    croak "$range must be positive." if $range < 0;
+    croak "$range exceeds irand max limit of 2**32." if $range > 2**32;
+
+    my $n = 0;
+    while ( ( my $d = 2**$n ) && $n++ <= 32 ) {
+        return $d if $d >= $range;
+    }
+
+    return;
 }
 
 
+################################################################################
+##  Functions interface                                                       ##
+################################################################################
+
+# Instantiate our random number generator(s) inside of a lexical closure,
+# limiting the scope of the RNG object so it can't be tampered with.
+
+# There's some repetition here.  At some point I should re-implement using
+# AUTOLOAD, but that often turns out to be more trouble than its worth.
+
+{
+  my %RNG_objects;
+
+  sub random_bytes {
+    $RNG_objects{standard} = Bytes::Random::Secure->new( FUNC_STD )
+      unless exists $RNG_objects{standard};
+    return $RNG_objects{standard}->bytes( @_ );
+  }
+
+  sub random_bytes_lite {
+    $RNG_objects{lite}     = Bytes::Random::Secure->new( FUNC_LITE )
+      unless exists $RNG_objects{lite};
+    return $RNG_objects{lite}->bytes( @_ );
+  }
+
+  sub random_string_from {
+    $RNG_objects{standard} = Bytes::Random::Secure->new( FUNC_STD )
+      unless exists $RNG_objects{standard};
+    return $RNG_objects{standard}->string_from( @_ );
+  }
+
+  sub random_string_from_lite {
+    $RNG_objects{lite}     = Bytes::Random::Secure->new( FUNC_LITE )
+      unless exists $RNG_objects{lite};
+    return $RNG_objects{lite}->string_from( @_ );
+  }
+}
+
+
+# Base64 encoded random bytes functions
+
+sub random_bytes_base64 {
+  my ( $bytes, $eof ) = @_;
+  return encode_base64 random_bytes($bytes), defined($eof) ? $eof : qq{\n};
+}
+
+
+sub random_bytes_base64_lite {
+  my( $bytes, $eof ) = @_;
+  return encode_base64 random_bytes_lite($bytes), defined($eof) ? $eof : qq{\n};
+}
+
+
+# Hex digit encoded random bytes
+
+sub random_bytes_hex {
+  return unpack 'H*', random_bytes( shift );
+}
+
+sub random_bytes_hex_lite {
+  return unpack 'H*', random_bytes_lite( shift );
+}
+
+# Quoted Printable encoded random bytes
+
+sub random_bytes_qp {
+  my ( $bytes, $eof ) = @_;
+  return encode_qp random_bytes($bytes), defined($eof) ? $eof : qq{\n}, 1;
+}
+
+sub random_bytes_qp_lite {
+  my ( $bytes, $eof ) = @_;
+  return encode_qp random_bytes_lite($bytes), defined($eof) ? $eof : qq{\n}, 1;
+}
 
 
 1;

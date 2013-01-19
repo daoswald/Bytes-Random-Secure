@@ -2,24 +2,28 @@
 
 use strict;
 use warnings;
+
 use Test::More;
 
 use 5.006000;
 
-BEGIN {
-  use_ok( 'Bytes::Random::Secure',
-          qw/ random_bytes random_bytes_hex random_bytes_base64 random_bytes_qp/
-  );
+BEGIN{
 
-  # Minimum "strong" entropy: We're testing functionality, not quality here.
-  Bytes::Random::Secure->config_seed( Count => 2 );
-                     
+  @main::functions = qw/ random_bytes        random_bytes_lite
+                         random_bytes_hex    random_bytes_hex_lite
+                         random_bytes_base64 random_bytes_base64_lite
+                         random_bytes_qp     random_bytes_qp_lite
+                         random_string_from  random_string_from_lite  /;
+
+  use_ok( 'Bytes::Random::Secure', @main::functions );
+
 }
 
-can_ok( 'Bytes::Random::Secure',
-  qw/ random_bytes random_bytes_hex random_bytes_base64 random_bytes_qp   _seed
-      config_seed/ );
+can_ok( 'Bytes::Random::Secure', @main::functions ); # Fully qualified.
+can_ok( 'main', @main::functions );                  # Imported.
 
+
+=cut
 # For testing purposes only.....
 # A callback for Crypt::Random::Seed::new().  Accepts number of bytes desired,
 # and returns a string of that length which is unpacked as our seed.
@@ -45,12 +49,20 @@ is( scalar @seeds, 2, 'Requesting seed size smaller than two longs reverts' .
 is( scalar @seeds, 16, 'Requesting seed size larger than 16 longs reverts' .
     ' to maximum of sixteen.' );
 
+=cut
 
 foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
   my $correct = $want >= 0 ? $want : 0;
   is( length random_bytes( $want ), $correct,
       "random_bytes($want) returns $correct bytes." );
+  is( length random_bytes_lite( $want ), $correct,
+      "random_bytes_lite($want) returns $correct bytes." );
 }
+
+
+
+# This test only runs for random_bytes().  No need to run it for
+# random_bytes_lite(); they share the same code.
 
 my @counts;
 my $iterations = 500;  
@@ -82,52 +94,131 @@ ok( ( $avg_count > 2711 && $avg_count < 3313 ),
 );
 diag "Average iterations: $avg_count (expect approx 3012).";
 
+
+
+# random_bytes_hex (and _lite) tests.
+
 foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
   my $result  = random_bytes_hex( $want );
   my $correct = $want >= 0 ? $want * 2 : 0;
   is( length random_bytes_hex( $want ), $correct,
       "random_bytes_hex($want) returned $correct hex digits." );
+  is( length random_bytes_hex_lite( $want ), $correct,
+      "random_bytes_hex_lite($want) returned $correct hex digits." );
 };
 
 ok( random_bytes_hex(128) =~ /^[[:xdigit:]]+$/,
     'random_bytes_hex only produces hex digits.' );
 
+ok( random_bytes_hex_lite(128) =~ /^[[:xdigit:]]+$/,
+    'random_bytes_hex_lite only produces hex digits.' );
+
+
+
+# random_bytes_base64 (and _lite) tests.
+
 is( length random_bytes_base64(-1), 0,
     'random_bytes_base64(-1) returns an empty string.' );
+is( length random_bytes_base64_lite(-1), 0,
+    'random_bytes_base64_lite(-1) returns an empty string.' );
+
 
 is( length random_bytes_base64(0),  0,
     'random_bytes_base64(0) returns an empty string.'  );
+is( length random_bytes_base64_lite(0),  0,
+    'random_bytes_base64_lite(0) returns an empty string.'  );
+
 
 ok( length random_bytes_base64(1) > 0,
     'random_bytes_base64(1) returns a string of some non-zero length.' );
+ok( length random_bytes_base64_lite(1) > 0,
+    'random_bytes_base64_lite(1) returns a string of some non-zero length.' );
+
 
 ok( length random_bytes_base64(5) < length random_bytes_base64( 16 ),
     'random_bytes_base64(5) returns a shorter string than ' .
     'random_bytes_base64(16)'                                );
+ok( length random_bytes_base64_lite(5) < length random_bytes_base64_lite( 16 ),
+    'random_bytes_base64_lite(5) returns a shorter string than ' .
+    'random_bytes_base64_lite(16)'                                 );
+
 
 ok( random_bytes_base64(128) =~ /^[^\n]{76}\n/,
     'random_bytes_base64 uses "\n" appropriately' );
+ok( random_bytes_base64_lite(128) =~ /^[^\n]{76}\n/,
+    'random_bytes_base64_lite uses "\n" appropriately' );
+
+
 ok( random_bytes_base64(128, q{}) =~ /^[^\n]+$/,
     'random_bytes_base64 passes EOL delimiter correctly.' );
+ok( random_bytes_base64_lite(128, q{}) =~ /^[^\n]+$/,
+    'random_bytes_base64_lite passes EOL delimiter correctly.' );
+
+
+
+# random_bytes_qp (and _lite) tests.
 
 is( length random_bytes_qp(-1), 0,
     'random_bytes_qp(-1) returns an empty string.' );
+is( length random_bytes_qp_lite(-1), 0,
+    'random_bytes_qp_lite(-1) returns an empty string.' );
+
 
 is( length random_bytes_qp(0),  0,
     'random_bytes_qp(0) returns an empty string.'  );
+is( length random_bytes_qp_lite(0),  0,
+    'random_bytes_qp_lite(0) returns an empty string.'  );
+
 
 ok( length random_bytes_qp(1) > 0,
     'random_bytes_qp(1) returns a string of some non-zero length.' );
+ok( length random_bytes_qp_lite(1) > 0,
+    'random_bytes_qp_lite(1) returns a string of some non-zero length.' );
+
 
 ok( length random_bytes_qp(5) < length random_bytes_qp( 16 ),
     'random_bytes_qp(5) returns a shorter string than ' .
     'random_bytes_qp(16)'                                );
+ok( length random_bytes_qp_lite(5) < length random_bytes_qp_lite( 16 ),
+    'random_bytes_qp_lite(5) returns a shorter string than ' .
+    'random_bytes_qp_lite(16)'                                );
+
+
 ok( random_bytes_qp(100) =~ m/^[^\n]{1,76}\n/,
     'random_bytes_qp uses "\n" appropriately' );
+ok( random_bytes_qp_lite(100) =~ m/^[^\n]{1,76}\n/,
+    'random_bytes_qp_lite uses "\n" appropriately' );
+
+
 ok( random_bytes_qp(128, q{}) =~ /^[^\n]+$/,
     'random_bytes_qp passes EOL delimiter correctly.' );
+ok( random_bytes_qp_lite(128, q{}) =~ /^[^\n]+$/,
+    'random_bytes_qp_lite passes EOL delimiter correctly.' );
+
 
 is( length random_bytes(), 0,
     'random_bytes(): No param defaults to zero bytes.' );
+is( length random_bytes_lite(), 0,
+    'random_bytes_lite(): No param defaults to zero bytes.' );
+
+
+
+# Basic tests for random_string_from
+# (More exhaustive tests in 22-random_string_from.t)
+
+my $MAX_TRIES = 1_000_000;
+my %bag;
+my $tries = 0;
+while( scalar( keys %bag ) < 26 && $tries++ < $MAX_TRIES ) {
+  $bag{ random_string_from( 'abcdefghijklmnopqrstuvwxyz', 1 ) }++;
+}
+
+is( scalar( keys %bag ), 26,
+   'random_string_from() returned all bytes from bag, and only bytes from bag.'
+);
+
+ok( ! scalar( grep{ $_ =~ m/[^abcdefghijklmnopqrstuvwxyz]/ } keys %bag ),
+    'No out of range characters in output.' );
+
 
 done_testing();

@@ -16,9 +16,8 @@ t/07-meta-json.t
 t/09-changes.t
 t/10-prereqs.t
 t/11-load.t
-t/20-functionality.t
+t/20-functions.t
 t/21-bytes_random_tests.t
 t/22-random_string_from.t
-t/23-seed_customization.t
+t/24-oo_components.t
 examples/random-sha512.pl
-
