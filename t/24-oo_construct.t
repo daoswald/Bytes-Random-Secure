@@ -103,8 +103,6 @@ warning_like { $got = $random->_round_bits_to_ge_32(33) }
              qr/^Bits field must be a multiple of 32\./,
              '_round_bits_to_ge_32Rounding up of bits generates warning.';
 is( $got,  64, '_round_bits_to_ge_32(33):  Returns 64' );
-is( $random->_round_bits_to_ge_32(33), 64,
-    '_round_bits_to_ge_32(33):  Returns 64' );
 is( $random->_round_bits_to_ge_32(512), 512,
     '_round_bits_to_ge_32(512): Returns 512' );
 

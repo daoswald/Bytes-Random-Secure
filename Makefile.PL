@@ -8,7 +8,7 @@ my %PREREQ_PM = (
     'Math::Random::ISAAC'   => '0',    # Provides our random number generator.
     'MIME::Base64'          => '0',    # Core.
     'MIME::QuotedPrint'     => '0',    # Core.
-    'Carp'                  => '0',    # Core.
+    'Carp'                  => '0',    # Core.f
 );
 
 WriteMakefile(

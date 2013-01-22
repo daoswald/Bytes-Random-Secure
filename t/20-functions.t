@@ -192,6 +192,8 @@ is( scalar( keys %bag ), 26,
 
 ok( ! scalar( grep{ $_ =~ m/[^abcdefghijklmnopqrstuvwxyz]/ } keys %bag ),
     'No out of range characters in output.' );
+like( random_string_from( 'abc', 100 ), qr/^[abc]{100}$/,
+      'random_string_from() returns only correct digits, and length.' );
 
 %bag = ();
 $tries = 100;

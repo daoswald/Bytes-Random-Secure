@@ -25,7 +25,7 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.13';
+our $VERSION = '0.20';
 
 # Seed size: 512 bits is sixteen 32-bit integers.
 use constant SEED_SIZE => 512;       # In bits
@@ -251,8 +251,8 @@ sub bytes {
 
 # Base64 encoding of random byte string.
 sub bytes_base64 {
-  my ( $self, $bytes, $eof ) = @_;
-  return encode_base64 $self->bytes($bytes), defined($eof) ? $eof : qq{\n};
+  my ( $self, $bytes, $eol ) = @_;
+  return encode_base64( $self->bytes($bytes), defined($eol) ? $eol : qq{\n} );
 }
 
 # Hex digits representing random byte string (No whitespace, no '0x').
@@ -263,8 +263,8 @@ sub bytes_hex {
 
 # Quoted Printable representation of random byte string.
 sub bytes_qp {
-  my ( $self, $bytes, $eof ) = @_;
-  return encode_qp $self->bytes($bytes), defined($eof) ? $eof : qq{\n}, 1;
+  my ( $self, $bytes, $eol ) = @_;
+  return encode_qp $self->bytes($bytes), defined($eol) ? $eol : qq{\n}, 1;
 }
 
 
@@ -433,9 +433,16 @@ random bytes.
 
 =head1 DESCRIPTION
 
-L<Bytes::Random::Secure> provides five functions that can be used anytime you
+L<Bytes::Random::Secure> provides two mechanisms for obtaining crypto-quality
+random bytes.  The simple interface is built around plain functions.  For
+greater control over the Random Number Generator's seeding, there is an Object
+Oriented interface that provides much more flexibility.
+
+The "functions" interface provides five functions that can be used anytime you
 need a string (or MIME Base64 representation, or hex-digits representation, or
-Quoted Printable representation) of a specific number of random bytes.
+Quoted Printable representation) of a specific number of random bytes.  These
+functions are available in both a "strong" version (the default), and a
+non-blocking, weaker "lite" version.
 
 This module can be a drop-in replacement for L<Bytes::Random>, with the primary
 enhancement of using a much higher quality random number generator to create
@@ -491,6 +498,8 @@ and C<random_bytes_qp> may be exported.
 
 =head2 random_bytes
 
+=head2 random_bytes_lite
+
     my $random_bytes = random_bytes( 512 );
     
 Returns a string containing as many random bytes as requested.  Obviously the
@@ -498,6 +507,8 @@ string isn't useful for display, as it can contain any byte value from 0 through
 255.
 
 =head2 random_string_from
+
+=head2 random_string_from_lite
 
     my $random_bytes = random_string_from( $bag, $length );
     my $random_bytes = random_string_from( 'abc', 50 );
@@ -525,6 +536,9 @@ random passwords.
 
 =head2 random_bytes_base64
 
+=head2 random_bytes_base64_lite
+
+
     my $random_bytes_b64           = random_bytes_base64( $num_bytes );
     my $random_bytes_b64_formatted = random_bytes_base64( $num_bytes, $eol );
 
@@ -541,6 +555,8 @@ to eliminate line-break insertions, specify an empty string: C<q{}>.
 
 =head2 random_bytes_hex
 
+=head2 random_bytes_hex_lite
+
     my $random_bytes_as_hex = random_bytes_hex( $num_bytes );
 
 Returns a string of hex digits representing the string of $number_of_bytes
@@ -554,6 +570,8 @@ and set a database field that's too narrow.
 
 =head2 random_bytes_qp
 
+=head2 random_bytes_qp_lite
+
     my $random_bytes_qp           = random_bytes_qp( $num_bytes );
     my $random_bytes_qp_formatted = random_bytes_qp( $num_bytes, $eol );
 
@@ -563,44 +581,32 @@ default configuration uses C<\n> as a line break after every 76 characters, and
 the "binmode" setting is used to guarantee a lossless round trip.  If no line
 break is wanted, pass an empty string as C<$eol>.
 
-=head2 config_seed
+=head2 new
 
-    use Bytes::Random::Secure;
-    Bytes::Random::Secure->config_seed( NonBlocking => 1 );
-    my $random_bytes = random_bytes(16);
-
-This is a class method, and its use is completely optional.  In most cases it
-should be unnecessary to override the default configuration used in seeding
-the ISAAC generator.  However, there are always those special cases, and when
-they arise, it's possible.
-
-C<config_seed> must be invoked I<before> the first call to any of the random
-bytes functions.  Internally the ISAAC generator is only instantiated once, and
-is instantiated (and seeded) lazily; the first time randomness is requested.
-Once the RNG has been used (and consequently instantiated), it is too late to
-change the seeding characteristics.
-
-By default the random number generator is seeded using 64 bytes of entropy from
-the strongest source available on a given system.  Many of the defaults may be
-overridden by passing named parameters to the C<config_seed> B<class method>.
-
-Most of the possible parameters are passed directly through to the constructor
-for L<Crypt::Random::Seed>, and are described in that module's documentation,
-with one exception:
-
-=head3 Count
+=head3 Bits
 
     Bytes::Random::Secure->config_seed( Count => 4 );
 
 The C<Count> parameter is unique to Bytes::Random::Secure, and specifies how
-many 32-bit (unsigned long) ints will be used in seeding the ISAAC random number
-generator.  The default is sixteen 32-bit values (64 bytes of entropy).  But in
-some cases it may not be necessary, or even wise to pull so many bytes of
+many bits (rounded up to nearest multiple of 32) will be used in seeding the
+ISAAC random number generator.  The default is 256 bits of entropy.  But in
+some cases it may not be necessary, or even wise to pull so many bits of
 entropy out of C</dev/random> (a blocking source).
 
-Any value between 4 and 16 will be accepted.
+Any value between 64 and 512 will be accepted.
 
 Returns true on success, and undef on failure.
+
+=head2 bytes
+
+=head2 string_from
+
+=head2 bytes_hex
+
+=head2 bytes_base64
+
+=head2 bytes_qp
+
 
 =head1 CONFIGURATION
 

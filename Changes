@@ -1,6 +1,17 @@
 Revision history for Bytes::Random::Secure
 
-0.13 2012-01-15
+0.20 2013-01-22
+  - This is a major release.  Much thanks to Dana Jacobson for his ideas,
+    suggestions, and code reviews.
+  - Major refactoring / rewrite.
+  - Built an OO base layer over which the functions interface is a thin wrapper.
+  - OO interface exposed publically.
+  - Added "lite" versions of "functions".
+  - Documented all functions. (POD)
+  - Accessors to query the state of the RNG seed.
+  - removed config_seed() (never publically released).
+  - Major enhancement of test suite.
+0.13 2013-01-15 (Never released)
   - POD clarification, enhancement.
   - Improved backwards compatibility support for Perl v5.6.x.
   - Eliminated Crypt::Random::Source dependency in favor of Crypt::Random::Seed;
