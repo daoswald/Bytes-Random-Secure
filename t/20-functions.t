@@ -23,33 +23,6 @@ can_ok( 'Bytes::Random::Secure', @main::functions ); # Fully qualified.
 can_ok( 'main', @main::functions );                  # Imported.
 
 
-=cut
-# For testing purposes only.....
-# A callback for Crypt::Random::Seed::new().  Accepts number of bytes desired,
-# and returns a string of that length which is unpacked as our seed.
-# This enables us to test _seed() without draining the entropy source.
-my $source = sub { return join( '', 'a' x shift ); };
-
-my @seeds = Bytes::Random::Secure::_seed( { Source => $source } );
-is( scalar @seeds, 16, 'Received 16 longs from _seed' );
-foreach my $seed ( @seeds ) {
-  ok( defined $seed && $seed ne '' && $seed !~ tr/0123456789//c,
-      'All seeds should be integers' );
-  is( $seed >= 0 && $seed < 2**32, 1, "Seed $seed is in range." );
-}
-
-@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 2 } );
-is( scalar @seeds, 2, 'Requested two longs, got two.' );
-
-@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 1 } );
-is( scalar @seeds, 2, 'Requesting seed size smaller than two longs reverts' .
-    ' to minimum of two.' );
-
-@seeds = Bytes::Random::Secure::_seed( { Source => $source, Count => 17 } );
-is( scalar @seeds, 16, 'Requesting seed size larger than 16 longs reverts' .
-    ' to maximum of sixteen.' );
-
-=cut
 
 foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
   my $correct = $want >= 0 ? $want : 0;
@@ -220,5 +193,15 @@ is( scalar( keys %bag ), 26,
 ok( ! scalar( grep{ $_ =~ m/[^abcdefghijklmnopqrstuvwxyz]/ } keys %bag ),
     'No out of range characters in output.' );
 
+%bag = ();
+$tries = 100;
+my $is_ok = 1;
+while( $tries-- ) {
+  if( ! random_string_from_lite('1234',2) =~ m/^[1234]{2}$/ ) {
+    $is_ok = 0;
+    last;
+  }
+}
+ok( $is_ok, 'random_string_from_lite() always returns in-range.' );
 
 done_testing();

@@ -108,7 +108,7 @@ sub _validate_args {
   while( my ( $arg_key, $arg_value ) = each %args ) {
 
     # Disqualify if not in white list.
-    if( ! exists ${ OO_ATTRIBS() }{$arg_key} ) {
+    if( ! exists $legal_args_href->{$arg_key} ) {
       carp "Illegal argument ($arg_key) will be ignored.";
       delete $args{$arg_key};
       next;
@@ -128,13 +128,10 @@ sub _validate_args {
 # Round bits parameter to nearest greater or equal 32-bit "long".
 sub _round_bits_to_ge_32 {
   my( $self, $bits ) = @_;
-
-  if( $bits % 32 ) {
-    carp "Bits field must be a multiple of 32.  Rounding up.";
-    $bits = int( ( $bits + 32 ) / 32 ) * 8;
-  }
-
-  return $bits;
+  my $remainder = $bits % 32;
+  return $bits if $remainder == 0;
+  carp "Bits field must be a multiple of 32.  Rounding up.";
+  return $bits + 32 - $remainder;
 }
 
 
@@ -143,7 +140,7 @@ sub _constrain_bits {
   my( $self, $bits, $min, $max ) = @_;
 
   if( $bits < $min ) {
-    carp "Bits field must be be >=64 (two longs). Rounding up.";
+    carp "Bits field must be >= 64 (two longs). Rounding up.";
     $bits = $min;
   }
   elsif( $bits > $max ) {
@@ -215,19 +212,15 @@ sub _build_seed_options {
 # Use Crypt::Random::Seed to generate some high-quality long int
 # seeds for Math::Random::ISAAC.
 sub _generate_seed {
-    my ( $self, $options_href ) = @_;
+    my ( $self, %options_hash ) = @_;
 
     my $seed_size = $self->get_Bits / 32;
-
-    my %options_hash;
-    %options_hash = %{$options_href} if ref $options_href eq 'HASH';
-
     my $source = Crypt::Random::Seed->new(%options_hash);
 
     croak 'Unable to obtain a strong seed source from Crypt::Random::Seed.'
       unless defined $source;
 
-    return $source->random_values($seed_size);   # Sixteen 32-bit unsigned ints.
+    return $source->random_values($seed_size); # List of unsigned longs.
 }
 
 
@@ -328,11 +321,12 @@ sub _closest_divisor {
     croak "$range exceeds irand max limit of 2**32." if $range > 2**32;
 
     my $n = 0;
-    while ( ( my $d = 2**$n ) && $n++ <= 32 ) {
+    while ( $n <= 32 ) {
+        my $d = 2 ** $n++;
         return $d if $d >= $range;
     }
-
-    return;
+    
+    return; # Should be unreachable.
 }
 
 

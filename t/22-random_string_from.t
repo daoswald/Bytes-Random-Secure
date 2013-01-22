@@ -5,7 +5,7 @@ use warnings;
 use Test::More;
 
 
-use Bytes::Random::Secure qw( random_string_from );
+use Bytes::Random::Secure;
 
 # We'll use a weaker source because we're testing for function, quality
 # isn't being contested here.  Weak=>1 should assure we use /dev/urandom where
@@ -40,6 +40,8 @@ ok( ! eval { $random->_closest_divisor(2**33); 1 },
 
 is( $random->_closest_divisor(2**32), 2**32,
     "_closest_divisor(2**32) == 2**32." );
+
+
 
 # Tests for _ranged_randoms().
 
