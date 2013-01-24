@@ -54,8 +54,10 @@ use constant CRYPT_RANDOM_SEED_OPTS =>
   [ qw( Weak NonBlocking Only Never Source ) ];
 
 
-# OO interface class/object methods:
 
+######################################
+# OO interface class/object methods: #
+######################################
 
 # Constructor
 sub new {
@@ -314,9 +316,6 @@ sub _closest_divisor {
 
 # Instantiate our random number generator(s) inside of a lexical closure,
 # limiting the scope of the RNG object so it can't be tampered with.
-
-# There's some repetition here.  At some point I should re-implement using
-# AUTOLOAD, but that often turns out to be more trouble than its worth.
 
 {
   my %RNG_objects;
