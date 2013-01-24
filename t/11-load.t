@@ -10,4 +10,7 @@ BEGIN {
     use_ok( 'Bytes::Random::Secure' ) || print "Bail out!\n";
 }
 
-diag( "Testing Bytes::Random::Secure $Bytes::Random::Secure::VERSION, Perl $], $^X" );
+diag(
+  "Testing Bytes::Random::Secure $Bytes::Random::Secure::VERSION, Perl $], $^X"
+);
+

@@ -5,6 +5,7 @@
 \B\.svn\b
 ^.git/\b
 ^.gitignore$
+^.perltidyrc
 
 # Makemaker generated files and dirs.
 ^MANIFEST\.

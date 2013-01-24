@@ -6,23 +6,9 @@ raw bytes, hex digits, MIME Base64, or MIME QuotedPrintable.
 
 CONFIGURATION
 
-Unless you really want to use Moose, please ensure that Mouse is available on
-your system.  If it isn't, Any::Moose will pull in the heavy-weight: Moose,
-which is overkill for what this module does.  In fact, the Mouse dependency
-traces back to this module's seed generator: Crypt::Random::Source.
-
 If you need better performance, install Math::Random::ISAAC::XS.  It will
 be automatically detected, and will provide better performance as you generate
 random bytes.
-
-If you're on Windows, I'm sorry to say that there is an additional dependency
-that will be pulled in automatically, and it's not light-weight.  Unfortunately
-it's difficult to get a good random seed source in a Windows environment.  At
-least it *does* work!  This dependency is Crypt::Random::Source::Strong::Win32.
-
-On *some* Win32 systems it may be necessary to force the installation of
-Crypt::Random::Source::Strong::Win32 prior to installing Bytes::Random::Secure,
-due to a broken test in one of C::R::S::S::Win32's dependencies.
 
 
 INSTALLATION
@@ -42,6 +28,9 @@ perldoc command.
     perldoc Bytes::Random::Secure
 
 You can also look for information at:
+
+    Github Repository
+        https://github.com/daoswald/Bytes-Random-Secure.git
 
     RT, CPAN's request tracker (report bugs here)
         http://rt.cpan.org/NoAuth/Bugs.html?Dist=Bytes-Random-Secure

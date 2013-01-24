@@ -22,7 +22,8 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : "0"
+            "Test::More" : "0.98",
+            "Test::Warn" : "0"
          }
       },
       "configure" : {
@@ -37,11 +38,10 @@
             "MIME::Base64" : "0",
             "MIME::QuotedPrint" : "0",
             "Math::Random::ISAAC" : "0",
-            "Test::More" : "0.98",
             "perl" : "5.006000"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.13"
+   "version" : "0.20"
 }

@@ -1,3 +1,4 @@
+## no critic (constant,unpack)
 package Bytes::Random::Secure;
 
 use strict;
@@ -5,169 +6,357 @@ use warnings;
 use 5.006000;
 use Carp;
 
+use Math::Random::ISAAC;
+use Crypt::Random::Seed;
+
 use MIME::Base64 'encode_base64';
 use MIME::QuotedPrint 'encode_qp';
-use Math::Random::ISAAC;
-use Crypt::Random::Source::Factory;
-
-# We can only test this condition by using a Windows system.
-use constant ON_WINDOWS => $^O =~ /Win32/i ? 1 : 0;    ## no critic (constant)
-use constant SEED_SIZE => 64;                          ## no critic (constant)
-
-# If we're in a Windows environment we need extra help in getting a
-# strong source.  This doesn't come cheap, so load only if we really need it.
-use if ON_WINDOWS, 'Crypt::Random::Source::Strong::Win32';
 
 use Exporter;
-our @ISA       = qw( Exporter );
+our @ISA = qw( Exporter );
 
 our @EXPORT_OK = qw(
-  random_bytes
-  random_bytes_base64
-  random_bytes_hex
-  random_bytes_qp
+  random_bytes          random_bytes_hex
+  random_bytes_base64   random_bytes_qp
   random_string_from
 );
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.13';
+our $VERSION = '0.20';
 
-# Instantiate our random number generator inside of a lexical closure, limiting
-# the scope of the object, as well as its visibility to the outside.
-{
-    my $RNG = Math::Random::ISAAC->new( _seed() );
+# Seed size: 512 bits is sixteen 32-bit integers.
+use constant SEED_SIZE => 512;       # In bits
+use constant SEED_MIN  => 64;
+use constant SEED_MAX  => 512;
+use constant PRNG      => 'ISAAC';
 
-    # New and improved version from Dana Jacobsen.
-    # Faster, and makes better use of the full width of M::R::ISAAC's
-    # 32 bit irand().
-    sub random_bytes {
-        my $bytes = shift;
-        $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
-        my $str = '';
 
-        while ($bytes >= 4) {                 # Utilize irand()'s 32 bits.
-            $str .= pack("L", $RNG->irand);
-            $bytes -= 4;
-        }
+use constant OO_ATTRIBS => {
+    Weak        => 0,            # Boolean. (0)            Crypt::Random::Seed
+    NonBlocking => 0,            # Boolean. (0)            Crypt::Random::Seed
+    Only        => undef,        # Aref of strings.        Crypt::Random::Seed
+    Never       => undef,        # Aref of strings.        Crypt::Random::Seed
+    Source      => undef,        # Subref or ARef.         Crypt::Random::Seed
+    PRNG        => PRNG,         # String. Alt RNG.        Internal (ISAAC)
+    Bits        => SEED_SIZE,    # Seed 64 <= Bits <= 512. Internal (512)
+};
 
-        if ($bytes > 0) {
-            my $rval = $RNG->irand;
+# Function interface seed attributes (standard, and lite).
+use constant FUNC_STD => {
+    Weak        => 0,
+    NonBlocking => 0,
+    Bits        => 256,
+};
 
-            $str .= pack("S", ($rval >> 8) & 0xFFFF) if $bytes >= 2; # 16 bits.
-            $str .= pack("C", $rval & 0xFF) if $bytes % 2;           # 8 bits.
 
-        }
-        return $str;
+use constant CRYPT_RANDOM_SEED_OPTS =>
+  [ qw( Weak NonBlocking Only Never Source ) ];
+
+
+# OO interface class/object methods:
+
+
+# Constructor
+sub new {
+    my ( $class, @config ) = @_;
+
+    my $self = bless {}, $class;
+    my $args_href = $self->_build_args(@config);
+    $self->_build_attributes($args_href);
+
+    return $self;
+}
+
+
+sub _build_args {
+    my ( $self, @args ) = @_;
+
+    @args = %{ $args[0] } if ref $args[0] eq 'HASH';
+
+    croak "Illegal argument list; key => value pairs expected."
+      if @args % 2;
+
+    my %args = $self->_validate_args( OO_ATTRIBS, @args );
+
+    if ( exists $args{Bits} ) {
+        $args{Bits} = $self->_round_bits_to_ge_32( $args{Bits} );
+        $args{Bits} = $self->_constrain_bits( $args{Bits}, SEED_MIN, SEED_MAX );
     }
 
-    # Generate a list of $count random numbers between 0 and $range.
-    sub _ranged_randoms {
-        my( $range, $count ) = @_;
-        $count = defined $count ? $count : 0;
-        
-        my $divisor = _closest_divisor( $range );
-        my @randoms;
+    return \%args;
+}
 
-        for my $n ( 1 .. $count ) {
-            my $random;
 
-            do{
-                $random = $RNG->irand % $divisor;
-            } while ( $random >= $range );
+# _build_args() helpers:
 
-            push @randoms, $random;
-        }
+# Verify drop illegal or 'undef' args.
+sub _validate_args {
+  my( $self, $legal_args_href, %args ) = @_;
 
-        return @randoms;
+  # Iterate through input args.
+  while( my ( $arg_key, $arg_value ) = each %args ) {
+
+    # Disqualify if not in white list.
+    if( ! exists $legal_args_href->{$arg_key} ) {
+      carp "Illegal argument ($arg_key) will be ignored.";
+      delete $args{$arg_key};
+      next;
     }
 
+    # Disqualify if undef passed.
+    if( ! defined $arg_value ) {
+      carp "Undefined value specified for attribute ($arg_key). "
+           . "Attribute will be ignored.";
+      delete $args{$arg_key};
+    }
+  }
+  return %args;
 }
 
 
-sub random_bytes_base64 {
-    my ( $bytes, $eof ) = @_;
-    return encode_base64 random_bytes($bytes), defined($eof) ? $eof : qq{\n};
+# Round bits parameter to nearest greater or equal 32-bit "long".
+sub _round_bits_to_ge_32 {
+  my( $self, $bits ) = @_;
+  my $remainder = $bits % 32;
+  return $bits if $remainder == 0;
+  carp "Bits field must be a multiple of 32.  Rounding up.";
+  return $bits + 32 - $remainder;
 }
 
-sub random_bytes_hex {
-    my $bytes = shift;
-    return unpack 'H*', random_bytes($bytes);
-}
 
-sub random_bytes_qp {
-    my ( $bytes, $eof ) = @_;
-    return encode_qp random_bytes($bytes), defined($eof) ? $eof : qq{\n}, 1;
-}
+# Constrain bits argument to a reasonable range.
+sub _constrain_bits {
+  my( $self, $bits, $min, $max ) = @_;
+
+  if( $bits < $min ) {
+    carp "Bits field must be >= 64 (two longs). Rounding up.";
+    $bits = $min;
+  }
+  elsif( $bits > $max ) {
+    carp "Bits field must be <= 512 (sixteen longs). Rounding down.";
+    $bits = $max;
+  }
+  # No need for an 'else' here.
   
-
-# Generate some high-quality long int seeds for Math::Random::ISAAC to use.
-
-sub _seed {
-    my $factory = Crypt::Random::Source::Factory->new();
-    my $source;
-    if (ON_WINDOWS) {
-        $source = $factory->get_strong;
-    }
-    else {
-        # Usually we get a strong source to begin with.
-        $source = $factory->get;
-
-        # Just in case, ensure that we haven't fallen back to Perl's 'rand'.
-        if ( $source->isa('Crypt::Random::Source::Weak::rand') ) {
-
-            # If we have, force a strong source.
-            $source = $factory->get_strong;
-        }
-    }
-    my $seed = $source->get(SEED_SIZE);
-
-    # Change our byte stream into long ints to use as seeds.
-    my @seed_ints = unpack( 'L*', $seed );
-    return @seed_ints;
+  return $bits;
 }
 
 
-# random_string_from(), and its support functions (note, _ranged_randoms is
-# handled inside of a lexical closure block, above.
+# Build attributes set by new().  Any not explicitly set will use defaults
+# as described in the constant OO_ATTRIBS.
+sub _build_attributes {
+    my ( $self, $args ) = @_;
 
-sub random_string_from {
-    my( $bag, $bytes ) = @_;
-    $bag      = defined $bag ? $bag : '';
-    $bytes    = defined $bytes ? $bytes : 0;
-    my $range = length $bag;
-
-    croak "Bag's size must be at least 1 character."
-        if $range < 1;
-    croak "Bag's size was $range, but cannot be longer than 2**32 characters."
-        if $range > 2 ** 32;  # Unless we want to generate a 512GB string, we
-                              # can't test this condition.
-
-    my $rand_bytes = '';
-    for my $random ( _ranged_randoms($range, $bytes) ) {
-        $rand_bytes .= substr( $bag, $random, 1 );
+    while ( my ( $arg, $default ) = each %{ OO_ATTRIBS() } ) {
+      $self->{$arg} = exists $args->{$arg} ? $args->{$arg} : $default;
     }
 
-    return $rand_bytes;
+    $self->{_RNG} = undef;    # Lazy initialization.
+    return $self;
 }
 
+
+# Get a seed and use it to instantiate a RNG.
+# Note: Currently we specify only Math::Random::ISAAC.  However, the PRNG
+# object attribute may be used in the future to specify alternate RNG's.
+sub _instantiate_rng {
+    my $self = shift;
+
+    my ( %seed_opts ) = $self->_build_seed_options;
+    my @seeds = $self->_generate_seed( %seed_opts );
+    $self->{_RNG} = Math::Random::ISAAC->new(@seeds);
+
+    return $self->{_RNG};
+}
+
+
+# Set up seed options for Crypt::Random::Seed
+sub _build_seed_options {
+  my( $self ) = @_;
+
+  my %crs_opts;
+
+  # CRYPT_RANDOM_SEED_OPTS enumerates the options that Crypt::Random::Seed
+  # supports.  We have already built object attributes for those options.
+  foreach my $opt ( @{ CRYPT_RANDOM_SEED_OPTS() } ) {
+      $crs_opts{$opt} = $self->{$opt} if defined $self->{$opt};
+  }
+
+  return %crs_opts;
+}
+
+
+# Use Crypt::Random::Seed to generate some high-quality long int
+# seeds for Math::Random::ISAAC.
+sub _generate_seed {
+    my ( $self, %options_hash ) = @_;
+
+    my $seed_size = $self->{Bits} / 32;
+    my $source = Crypt::Random::Seed->new(%options_hash);
+
+    croak 'Unable to obtain a strong seed source from Crypt::Random::Seed.'
+      unless defined $source;
+
+    return $source->random_values($seed_size); # List of unsigned longs.
+}
+
+
+# Random bytes string.
+sub bytes {
+  my( $self, $bytes ) = @_;
+  $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
+
+  $self->_instantiate_rng unless defined $self->{_RNG};
+
+  my $str = '';
+
+  while ( $bytes >= 4 ) {                  # Utilize irand()'s 32 bits.
+    $str .= pack( "L", $self->{_RNG}->irand );
+    $bytes -= 4;
+  }
+
+  if ( $bytes > 0 ) {
+    my $rval = $self->{_RNG}->irand;
+
+    $str .= pack( "S", ( $rval >> 8 ) & 0xFFFF )
+      if $bytes >= 2;                    # 16 bits.
+    $str .= pack( "C", $rval & 0xFF ) if $bytes % 2;    # 8 bits.
+
+  }
+  return $str;
+}
+
+# Base64 encoding of random byte string.
+sub bytes_base64 {
+  my ( $self, $bytes, $eol ) = @_;
+  return encode_base64( $self->bytes($bytes), defined($eol) ? $eol : qq{\n} );
+}
+
+# Hex digits representing random byte string (No whitespace, no '0x').
+sub bytes_hex {
+  my ( $self, $bytes ) = @_;
+  return unpack 'H*', $self->bytes($bytes);
+}
+
+# Quoted Printable representation of random byte string.
+sub bytes_qp {
+  my ( $self, $bytes, $eol ) = @_;
+  return encode_qp $self->bytes($bytes), defined($eol) ? $eol : qq{\n}, 1;
+}
+
+
+sub string_from {
+  my( $self, $bag, $bytes ) = @_;
+  $bag   = defined $bag   ? $bag   : '';
+  $bytes = defined $bytes ? $bytes : 0;
+  my $range = length $bag;
+
+  croak "Bag's size must be at least 1 character."
+    if $range < 1;
+  croak "Bag's size was $range, but cannot be longer than 2**32 characters."
+    if $range > 2**32;    # Unless we want to generate a 512GB string, we
+                          # can't test this condition.
+
+  my $rand_bytes = '';
+  for my $random ( $self->_ranged_randoms( $range, $bytes ) ) {
+      $rand_bytes .= substr( $bag, $random, 1 );
+  }
+
+  return $rand_bytes;
+}
+
+# Helpers for string_from()
+
+sub _ranged_randoms {
+    my ( $self, $range, $count ) = @_;
+    $count = defined $count ? $count : 0;
+
+    # Lazily seed the RNG so we don't waste available strong entropy.
+    $self->_instantiate_rng unless defined $self->{_RNG};
+
+    my $divisor = $self->_closest_divisor($range);
+    my @randoms;
+
+    for my $n ( 1 .. $count ) {
+        my $random;
+
+        do {
+            $random = $self->{_RNG}->irand % $divisor;
+        } while ( $random >= $range );
+
+        push @randoms, $random;
+    }
+
+    return @randoms;
+}
 
 sub _closest_divisor {
-  my $range = shift;
-  $range = defined $range ? $range : 0;
-  
-  croak "$range must be positive." if $range < 0;
-  croak "$range exceeds irand max limit of 2**32." if $range > 2 ** 32;
+    my ( $self, $range ) = @_;
+    $range = defined $range ? $range : 0;
 
-  my $n = 0;
-  while( ( my $d = 2 ** $n ) && $n++ <= 32 ) {
-    return $d if $d >= $range;
-  }
-  
-  return;
+    croak "$range must be positive." if $range < 0;
+    croak "$range exceeds irand max limit of 2**32." if $range > 2**32;
+
+    my $n = 0;
+    while ( $n <= 32 ) {
+        my $d = 2 ** $n++;
+        return $d if $d >= $range;
+    }
+    
+    return; # Should be unreachable.
 }
 
 
+################################################################################
+##  Functions interface                                                       ##
+################################################################################
+
+# Instantiate our random number generator(s) inside of a lexical closure,
+# limiting the scope of the RNG object so it can't be tampered with.
+
+# There's some repetition here.  At some point I should re-implement using
+# AUTOLOAD, but that often turns out to be more trouble than its worth.
+
+{
+  my %RNG_objects;
+
+  sub random_bytes {
+    $RNG_objects{standard} = Bytes::Random::Secure->new( FUNC_STD )
+      unless exists $RNG_objects{standard};
+    return $RNG_objects{standard}->bytes( @_ );
+  }
+
+  sub random_string_from {
+    $RNG_objects{standard} = Bytes::Random::Secure->new( FUNC_STD )
+      unless exists $RNG_objects{standard};
+    return $RNG_objects{standard}->string_from( @_ );
+  }
+
+}
+
+
+# Base64 encoded random bytes functions
+
+sub random_bytes_base64 {
+  my ( $bytes, $eof ) = @_;
+  return encode_base64 random_bytes($bytes), defined($eof) ? $eof : qq{\n};
+}
+
+
+# Hex digit encoded random bytes
+
+sub random_bytes_hex {
+  return unpack 'H*', random_bytes( shift );
+}
+
+
+# Quoted Printable encoded random bytes
+
+sub random_bytes_qp {
+  my ( $bytes, $eof ) = @_;
+  return encode_qp random_bytes($bytes), defined($eof) ? $eof : qq{\n}, 1;
+}
 
 
 1;
@@ -180,6 +369,7 @@ Bytes::Random::Secure - Perl extension to generate cryptographically-secure
 random bytes.
 
 =head1 SYNOPSIS
+
 
     use Bytes::Random::Secure qw(
         random_bytes random_bytes_base64 random_bytes_hex
@@ -195,34 +385,53 @@ random bytes.
 
     my $bytes_as_quoted_printable = random_bytes_qp(100); # QP encoded bytes.
 
+
+    my $random = Bytes::Random::Secure->new( Bits => 64 ); # Seed with 64 bits
+    my $bytes = $random->bytes(32); # A string of 32 random bytes.
+
+
 =head1 DESCRIPTION
 
-L<Bytes::Random::Secure> provides five functions that can be used anytime you
+L<Bytes::Random::Secure> provides two interfaces for obtaining crypto-quality
+random bytes.  The simple interface is built around plain functions.  For
+greater control over the Random Number Generator's seeding, there is an Object
+Oriented interface that provides much more flexibility.
+
+The "functions" interface provides five functions that can be used any time you
 need a string (or MIME Base64 representation, or hex-digits representation, or
-Quoted Printable representation) of a specific number of random bytes.
+Quoted Printable representation) of a specific number of random bytes.  There
+are equivalent methods available via the OO interface.
 
 This module can be a drop-in replacement for L<Bytes::Random>, with the primary
 enhancement of using a much higher quality random number generator to create
-the random data.  The random number generator comes from L<Math::Random::ISAAC>,
-and is suitable for cryptographic purposes.  Actually, the harder problem to
-solve is how to seed the generator.  This module uses L<Crypt::Random::Source>
-to generate the initial seeds for Math::Random::ISAAC.  On Windows platforms
-Crypt::Random::Source needs L<Crypt::Random::Source::Strong::Win32> to obtain
-high quality seeds.
+the random data.  The C<random_bytes> function emulates the user interface of
+L<Bytes::Random>'s function by the same name.  But with Bytes::Random::Secure
+the random number generator comes from L<Math::Random::ISAAC>, and is suitable
+for cryptographic purposes.  The harder problem to solve is how to seed the
+generator.  This module uses L<Crypt::Random::Seed> to generate the initial
+seeds for Math::Random::ISAAC.
 
 In addition to providing C<random_bytes()>, this module also provides four
 functions not found in L<Bytes::Random>: C<random_string_from>,
 C<random_bytes_base64()>, C<random_bytes_hex>, and C<random_bytes_qp>.
 
+And finally, for those who need finer control over how L<Crypt::Random::Seed>
+generates its seed, there is an object oriented interface with a constructor
+that facilitates configuring the seeding process, while providing methods that
+do everything the "functions" interface can do (truth be told, the functions
+interface is just a thin wrapper around the OO version, with some sane defaults
+selected).
+
 =head1 RATIONALE
 
 There are many uses for cryptographic quality randomness.  This module aims to
-provide a generalized tool that can fit into many applications.  You're free
+provide a generalized tool that can fit into many applications while providing
+a minimal dependency chain, and a user interface that is simple.  You're free
 to come up with your own use-cases, but there are several obvious ones:
 
 =over 4
 
-=item * Generating temporary passphrases (C<random_string_from()>).
+=item * Creating temporary passphrases (C<random_string_from()>).
 
 =item * Generating per-account random salt to be hashed along with passphrases 
 (and stored alongside them) to prevent rainbow table attacks.
@@ -230,8 +439,10 @@ to come up with your own use-cases, but there are several obvious ones:
 =item * Generating a secret that can be hashed along with a cookie's session
 content to prevent cookie forgeries.
 
-=item * Generating raw cryptographic-quality pseudo-random data sets for testing
+=item * Building raw cryptographic-quality pseudo-random data sets for testing
 or sampling.
+
+=item * Feeding secure key-gen utilities.
 
 =back
 
@@ -240,8 +451,9 @@ generate strong random seeds, and then to instantiate a high quality random
 number factory based on the strong seed.  The code in this module really just
 glues together the building blocks.  However, it has taken a good deal of
 research to come up with what I feel is a strong tool-chain that isn't going to
-fall back to a weaker state on some systems.  Hopefully others can benefit from
-this work.
+fall back to a weaker state on some systems.  The interface is designed with
+simplicity in mind, to minimize the potential for misconfiguration.  Hopefully
+others can benefit from this work.
 
 =head1 EXPORTS
 
@@ -250,6 +462,10 @@ C<random_string_from>, C<random_bytes_base64>, C<random_bytes_hex>,
 and C<random_bytes_qp> may be exported.
 
 =head1 FUNCTIONS
+
+The functions interface seeds the ISAAC generator on first use with a 256 bit
+seed that uses Crypt::Random::Seed's default configuration as a strong random
+seed source.
 
 =head2 random_bytes
 
@@ -325,43 +541,146 @@ default configuration uses C<\n> as a line break after every 76 characters, and
 the "binmode" setting is used to guarantee a lossless round trip.  If no line
 break is wanted, pass an empty string as C<$eol>.
 
+=head1 METHODS
+
+The Object Oriented interface provides methods that mirror the "functions"
+interface.  However, the OO interface offers the advantage that the user can
+control how many bits of entropy are used in seeding, and even how
+L<Crypt::Random::Seed> is configured.
+
+=head2 new
+
+    my $random = Bytes::Random::Secure->new( Bits => 512 );
+
+The constructor is used to specify how the ISAAC generator is seeded.  Future
+versions may also allow for an alternate PSRNG to be selected.  The default
+configuration specifies 512 bits for the seed.  The rest of the default
+configuration accepts the L<Crypt::Random::Seed> defaults.
+
+=head3 CONSTRUCTOR PARAMETERS
+
+=head4 Bits
+
+    my $random = Bytes::Random::Secure->new( Bits => 128 );
+    
+The C<Bits> parameter is unique to Bytes::Random::Secure, and specifies how
+many bits (rounded up to nearest multiple of 32) will be used in seeding the
+ISAAC random number generator.  The default is 512 bits of entropy.  But in
+some cases it may not be necessary, or even wise to pull so many bits of
+entropy out of C</dev/random> (a blocking source).
+
+Any value between 64 and 512 will be accepted.
+
+If an out-of-range value is specified, or a value that is not a multiple of 32,
+a warning will be generated and the parameter will be rounded up to the nearest
+multiple of 32 within the range of 64 through 512.  So if 1024 is specified, you
+will get 512.  If 33 is specified, you will get 64.  
+
+=head4 PRNG
+
+Reserved for future use.  Eventually the user will be able to select other RNGs
+aside from Math::Random::ISAAC.
+
+=head4 Unique
+
+Reserved for future use.  Eventually the user may decide whether to share
+RNGs with equal seed configurations between objects.  The goal would be to
+preserve system entropy, as well as dive deeper into the ISAAC stream.
+
+=head4 Crypt::Random::Seed Configuration Parameters
+
+For additional seeding control, refer to the POD for L<Crypt::Random::Seed>.
+By supplying a Crypt::Random::Seed parameter to Bytes::Random::Secure's
+constructor, it will be passed through to Crypt::Random::Seed.  For example:
+
+    my $random = Bytes::Random::Secure->new( NonBlocking => 1, Bits => 64 );
+
+In this example, C<Bits> is used internally, while C<NonBlocking> is passed
+through to Crypt::Random::Seed.
+
+
+=head2 bytes
+
+    my $random_bytes = $random->bytes(1024);
+
+This works just like the C<random_bytes> function.
+
+
+=head2 string_from
+
+    my $random_string = $random->string_from( 'abcdefg', 10 );
+
+Just like C<random_string_from>: Returns a string of random octets selected
+from the "Bag" string (in this case ten octets from 'abcdefg').
+
+
+=head2 bytes_hex
+
+    my $random_hex = $random->bytes_hex(12);
+
+Identical in function to C<random_bytes_hex>.
+
+
+=head2 bytes_base64
+
+    my $random_base64 = $random->bytes_base64( 32, EOL => "\n" );
+
+Identical in function to C<random_bytes_base64>.
+
+
+=head2 bytes_qp
+
+    my $random_qp = $random->bytes_qp( 80 );
+
+You guessed it: Identical in function to C<random_bytes_qp>.
+
+
 =head1 CONFIGURATION
 
 L<Bytes::Random::Secure>'s interface I<keeps it simple>.  There is generally 
 nothing to configure.  This is by design, as it eliminates much of the 
 potential for diminishing the quality of the random byte stream by through
-misconfiguration.  Finding a reliable seed source is the hardest component.  If
-you would prefer to supply your own, skip this module and go directly to
-L<Math::Random::ISAAC> (or get in touch with me and we can discuss whether your
-method might be a better choice for this module too). ;)
+misconfiguration.  The ISAAC algorithm is used as our factory, seeded with a
+strong source.
 
-L<Crypt::Random::Source> provides our strong seed.  For better or worse, this
-module uses L<Any::Moose>, which will default to the lighter-weight L<Mouse>
-if it is available.  If Mouse is I<not> available, but L<Moose> I<is>, Moose
-will be used.  This is a significantly heavier dependency.  Unless you are using
-Moose in your application already, it's probably better to allow Mouse to be
-used instead.  It is my recommendation that if you don't have Mouse installed,
-you install it right now before you use this module to keep the bloat to a
-minimum.
+There may be times when the default seed characteristics carry too heavy a
+burden on system resources.  The default seed for the functions interface is
+256 bits of entropy taken from /dev/random (a blocking source on many systems),
+or via API calls on Windows. If /dev/random should become depleted at the time
+that this module attempts to seed the ISAAC generator, there could be delay
+while additional system entropy is generated.  If this is a problem, it is
+possible to override the default seeding characteristics using the OO interface
+instead of the functions interface.  However, under most circumstances, this
+capability may be safely ignored.
 
-If you really have the need to feel useful, you may also install 
+Beginning with Bytes::Random::Secure version 0.20, L<Crypt::Random::Seed>
+provides our strong seed (previously it was Crypt::Random::Source).  This module
+gives us excellent "strong source" failsafe behavior, while keeping the
+non-core dependencies to a bare minimum.  Best of all, it performs well across
+a wide variety of platforms, and is compatible with Perl versions back through
+5.6.0.
+
+If performance is a consideration, you may also install 
 L<Math::Random::ISAAC::XS>. Bytes::Random::Secure's random number generator 
 uses L<Math::Random::ISAAC>.  That module implements the ISAAC algorithm in pure
-Perl.  However, if you install L<Math::Random::ISAAC::XS>, you get the same 
-algorithm implemented in C/XS, which will provide better performance.  If you 
-need to produce your random bytes more quickly, simply installing 
-Math::Random::ISAAC::XS will result in it automatically being used, and a
-pretty good performance improvement will coincide.
+Perl.  However, if you install L<Math::Random::ISAAC::XS>, you
+get the same algorithm implemented in C/XS, which will provide better
+performance.  If you need to produce your random bytes more quickly, simply
+installing Math::Random::ISAAC::XS will result in it automatically being used,
+and a pretty good performance improvement will coincide.
 
-=head2 Win32 Special Dependency
+And as mentioned earlier in this document, there may be circumstances where
+the performance of the operating system's random entropy source prohibits using
+the module's default seeding configuration.  Use the OO interface instead, and
+read the documentation for L<Crypt::Random::Seed> to learn what options are
+available.
 
-In Win32 environments, Crypt::Random::Source uses a different technique to
-generate high quality randomness.  In a Windows environment, this module has
-the additional requirement of needing L<Crypt::Random::Source::Strong::Win32>.
-Unfortunately, the current version of that module has a broken test, and in
-some cases may fail its test suite.  It may be necessary to force the
-installation of Crypt::Random::Source::Strong::Win32 before
-Bytes::Random::Secure can be installed.
+Prior to version 0.20, a heavy dependency chain was required for reliably
+and securely seeding the ISAAC generator.  Thanks to Dana Jacobsen's new
+Crypt::Random::Seed module, this situation has been resolved.  So if you're
+looking for a secure random bytes solution that "just works" portably, and on
+Perl's as far back as 5.6.0, you've come to the right place.  Users are
+encouraged to update to version 0.20 or newer.
 
 =head1 CAVEATS
 
@@ -369,8 +688,8 @@ It's easy to generate weak pseudo-random bytes.  It's also easy to think you're
 generating strong pseudo-random bytes when really you're not.  And it's hard to
 test for pseudo-random cryptographic acceptable quality.
 
-It's also hard to generate strong (ie, secure) random bytes in a way that works
-across a wide variety of platforms.  A primary goal for this module is to
+Assuring strong (ie, secure) random bytes in a way that works across a wide
+variety of platforms is also challenging.  A primary goal for this module is to
 provide cryptographically secure pseudo-random bytes.  A secondary goal is to
 provide a simple user experience (thus reducing the propensity for getting it
 wrong).  A terciary goal is to minimize the dependencies required to achieve the
@@ -378,37 +697,24 @@ primary and secondary goals, to the extent that is practical.
 
 This module steals some code from L<Math::Random::Secure>.  That module is an
 excellent resource, but implements a broader range of functionality than is
-needed here.  So we just borrowed some code from it, and some of its
-dependencies.
+needed here.  So we just borrowed some code from it to keep the dependencies
+light.
 
 The primary source of random data in this module comes from the excellent
-L<Math::Random::ISAAC>.  Unfortunately, to be useful and secure, even
-Math::Random::ISAAC needs a cryptographically sound seed, which we derive from
-L<Crypt::Random::Source>. Neither of those modules are light on dependencies.
-The situation becomes even more difficult in a Win32 environment, where
-Crypt::Random::Source needs the L<Crypt::Random::Source::Strong::Win32> plug-in,
-which is even heavier in external dependencies.
+L<Math::Random::ISAAC>.  To be useful and secure, even Math::Random::ISAAC
+needs a cryptographically sound seed, which we derive from
+L<Crypt::Random::Seed>.  To date, there are no known weaknesses in the ISAAC
+algorithm.  And Crypt::Random::Seed does a very good job of preventing fall-back
+to weak seed sources.
 
-The result is that the cost of getting cryptographically strong random bytes
-on most platforms is a heavy dependency chain, and the cost of getting them
-in a windows platform is about twice as heavy of a dependency chain as on most
-other platforms.  If you're a Win32 user, and you cannot justify the dependency
-chain, look elsewhere (and let me know what you find!).  On the other hand, if
-you're looking for a secure random bytes solution that "just works" portably
-(and are willing to live with the fact that the dependencies are heavier for
-Windows users), you've come to the right place.
-
-Patches that improve the Win32 situation without compromising the module's
-primary and secondary goals, and without growing the dependencies for *nix users
-are certainly welcome.
-
-All users can minimize the number of modules loaded upon startup by making sure
-that L<Mouse> is available on their system so that L<Any::Moose> can choose that
-lighter-weight alternative to L<Moose>.  Of course if your application already
-uses Moose, this becomes a non-issue.
+However, it is possible (and has been seen in testing) that the system's random
+entropy source might not have enough entropy in reserve to generate the seed
+requested by this module without blocking.  If you suspect that you're a victim
+of blocking from reads on C</dev/random>, your best option is to manipulate
+the random seed configuration by using the C<config_seed> class method.
 
 A note regarding modulo bias:  Care is taken such that there is no modulo bias
-in the randomness returned either by C<random_bytes> and its siblings, nor by
+in the randomness returned either by C<random_bytes> or its siblings, nor by
 C<random_string_from>.  As a matter if fact, this is exactly I<why> the
 C<random_string_from> function is useful.  However, the algorithm to eliminate
 modulo bias can impact the performance of the C<random_string_from> function.
@@ -463,21 +769,17 @@ L<http://search.cpan.org/dist/Bytes-Random-Secure/>
 
 =head1 ACKNOWLEDGEMENTS
 
-L<Mojolicious> for motivating me to investigate this stuff as a means of
-auto-generating a secure "App secret".
+Dana Jacobsen ( I<< <dana@acm.org> >> ) for his work that led to
+L<Crypt::Random::Seed>, thereby significantly reducing the dependencies while
+improving the portability and backward compatibility of this module.  Also for
+providing a patch to this module that greatly improved the performance
+of C<random_bytes>.
+
+Dana Jacosen also provided extensive input that helped guide the direction this
+module has taken.  Thanks!
 
 L<Bytes::Random> for implementing a nice interface that this module patterns
 itself after.
-
-L<Math::Random::Secure> for providing an excellent random number tool, and
-informative documentation: I recommend reading through it's docs; most of what
-is contained in the "IMPLEMENTATION DETAILS" section is applicable to this
-module as well, as some of this module's code and dependency chain was borrowed
-from Math::Random::Secure.
-
-Dana Jacobsen ( I<danaj on CPAN> ) for providing a patch that significantly
-improved the performance of C<random_bytes>, and for offering suggestions on
-better supporting Perl versions back through 5.6.x.
 
 =head1 LICENSE AND COPYRIGHT
 
@@ -488,6 +790,5 @@ under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
-
 
 =cut
