@@ -55,9 +55,9 @@ use constant CRYPT_RANDOM_SEED_OPTS =>
 
 
 
-######################################
-# OO interface class/object methods: #
-######################################
+################################################################################
+# OO interface class/object methods:                                          ##
+################################################################################
 
 # Constructor
 sub new {
@@ -318,18 +318,24 @@ sub _closest_divisor {
 # limiting the scope of the RNG object so it can't be tampered with.
 
 {
-  my %RNG_objects;
+  my $RNG_object = undef;
+
+
+  # Lazily, instantiate the RNG object, but only once.
+  my $fetch_RNG = sub {
+    $RNG_object = Bytes::Random::Secure->new( FUNC_STD )
+      unless defined $RNG_object;
+    return $RNG_object;
+  };
+
 
   sub random_bytes {
-    $RNG_objects{standard} = Bytes::Random::Secure->new( FUNC_STD )
-      unless exists $RNG_objects{standard};
-    return $RNG_objects{standard}->bytes( @_ );
+    return $fetch_RNG->()->bytes( @_ );
   }
 
+
   sub random_string_from {
-    $RNG_objects{standard} = Bytes::Random::Secure->new( FUNC_STD )
-      unless exists $RNG_objects{standard};
-    return $RNG_objects{standard}->string_from( @_ );
+    return $fetch_RNG->()->string_from( @_ );
   }
 
 }
