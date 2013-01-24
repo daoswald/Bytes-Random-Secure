@@ -24,3 +24,5 @@
 \.gz$
 MYMETA\b
 ^cover_db/
+^nytprof/
+^nytprof\.out
