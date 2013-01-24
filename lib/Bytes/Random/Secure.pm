@@ -385,13 +385,17 @@ random bytes.
     my $bytes_as_quoted_printable = random_bytes_qp(100); # QP encoded bytes.
 
 
-    my $random = Bytes::Random::Secure->new( Bits => 64 ); # Seed with 64 bits
+    my $random = Bytes::Random::Secure->new(
+        Bits        => 64,
+        NonBlocking => 1,
+    ); # Seed with 64 bits, and use /dev/urandom (or other non-blocking).
+
     my $bytes = $random->bytes(32); # A string of 32 random bytes.
 
 
 =head1 DESCRIPTION
 
-L<Bytes::Random::Secure> provides two interfaces for obtaining crypto-quality
+L<Bytes::Random::Secure> provides two interfaces for obtaining crypt-quality
 random bytes.  The simple interface is built around plain functions.  For
 greater control over the Random Number Generator's seeding, there is an Object
 Oriented interface that provides much more flexibility.
@@ -445,14 +449,15 @@ or sampling.
 
 =back
 
-Why this module?  This module uses several well-designed CPAN tools to first
-generate strong random seeds, and then to instantiate a high quality random
-number factory based on the strong seed.  The code in this module really just
-glues together the building blocks.  However, it has taken a good deal of
+Why use this module?  This module employs several well-designed CPAN tools to
+first generate strong random seeds, and then to instantiate a high quality
+random number factory based on the strong seed.  The code in this module really
+just glues together the building blocks.  However, it has taken a good deal of
 research to come up with what I feel is a strong tool-chain that isn't going to
-fall back to a weaker state on some systems.  The interface is designed with
+fall back to a weak state on some systems.  The interface is designed with
 simplicity in mind, to minimize the potential for misconfiguration.  Hopefully
-others can benefit from this work.
+others may benefit from this work.
+
 
 =head1 EXPORTS
 
@@ -462,7 +467,7 @@ and C<random_bytes_qp> may be exported.
 
 =head1 FUNCTIONS
 
-The functions interface seeds the ISAAC generator on first use with a 256 bit
+The B<functions interface> seeds the ISAAC generator on first use with a 256 bit
 seed that uses Crypt::Random::Seed's default configuration as a strong random
 seed source.
 
@@ -542,7 +547,7 @@ break is wanted, pass an empty string as C<$eol>.
 
 =head1 METHODS
 
-The Object Oriented interface provides methods that mirror the "functions"
+The B<Object Oriented interface> provides methods that mirror the "functions"
 interface.  However, the OO interface offers the advantage that the user can
 control how many bits of entropy are used in seeding, and even how
 L<Crypt::Random::Seed> is configured.
@@ -552,9 +557,11 @@ L<Crypt::Random::Seed> is configured.
     my $random = Bytes::Random::Secure->new( Bits => 512 );
 
 The constructor is used to specify how the ISAAC generator is seeded.  Future
-versions may also allow for an alternate PSRNG to be selected.  The default
-configuration specifies 512 bits for the seed.  The rest of the default
-configuration accepts the L<Crypt::Random::Seed> defaults.
+versions may also allow for an alternate PSRNG to be selected.  If no parameters
+are passed the default configuration specifies 512 bits for the seed.  The rest
+of the default configuration accepts the L<Crypt::Random::Seed> defaults, which
+favor the strongest operating system provided entropy source, which in many
+cases may be "blocking".
 
 =head3 CONSTRUCTOR PARAMETERS
 
@@ -562,18 +569,16 @@ configuration accepts the L<Crypt::Random::Seed> defaults.
 
     my $random = Bytes::Random::Secure->new( Bits => 128 );
     
-The C<Bits> parameter is unique to Bytes::Random::Secure, and specifies how
-many bits (rounded up to nearest multiple of 32) will be used in seeding the
-ISAAC random number generator.  The default is 512 bits of entropy.  But in
-some cases it may not be necessary, or even wise to pull so many bits of
-entropy out of C</dev/random> (a blocking source).
+The C<Bits> parameter specifies how many bits (rounded up to nearest multiple of
+32) will be used in seeding the ISAAC random number generator.  The default is
+512 bits of entropy.  But in some cases it may not be necessary, or even wise to
+pull so many bits of entropy out of C</dev/random> (a blocking source).
 
-Any value between 64 and 512 will be accepted.
-
-If an out-of-range value is specified, or a value that is not a multiple of 32,
-a warning will be generated and the parameter will be rounded up to the nearest
-multiple of 32 within the range of 64 through 512.  So if 1024 is specified, you
-will get 512.  If 33 is specified, you will get 64.  
+Any value between 64 and 512 will be accepted. If an out-of-range value is
+specified, or a value that is not a multiple of 32, a warning will be generated
+and the parameter will be rounded up to the nearest multiple of 32 within the
+range of 64 through 512 bits.  So if 1024 is specified, you will get 512.  If
+33 is specified, you will get 64.  
 
 =head4 PRNG
 
@@ -582,9 +587,7 @@ aside from Math::Random::ISAAC.
 
 =head4 Unique
 
-Reserved for future use.  Eventually the user may decide whether to share
-RNGs with equal seed configurations between objects.  The goal would be to
-preserve system entropy, as well as dive deeper into the ISAAC stream.
+Reserved for future use.
 
 =head4 Crypt::Random::Seed Configuration Parameters
 
@@ -645,12 +648,13 @@ strong source.
 There may be times when the default seed characteristics carry too heavy a
 burden on system resources.  The default seed for the functions interface is
 256 bits of entropy taken from /dev/random (a blocking source on many systems),
-or via API calls on Windows. If /dev/random should become depleted at the time
-that this module attempts to seed the ISAAC generator, there could be delay
-while additional system entropy is generated.  If this is a problem, it is
-possible to override the default seeding characteristics using the OO interface
-instead of the functions interface.  However, under most circumstances, this
-capability may be safely ignored.
+or via API calls on Windows.  The default seed size for the OO interface is
+512 bits. If /dev/random should become depleted at the time that this module
+attempts to seed the ISAAC generator, there could be delay while additional
+system entropy is generated.  If this is a problem, it is possible to override
+the default seeding characteristics using the OO interface instead of the
+functions interface.  However, under most circumstances, this capability may be
+safely ignored.
 
 Beginning with Bytes::Random::Secure version 0.20, L<Crypt::Random::Seed>
 provides our strong seed (previously it was Crypt::Random::Source).  This module
@@ -658,6 +662,25 @@ gives us excellent "strong source" failsafe behavior, while keeping the
 non-core dependencies to a bare minimum.  Best of all, it performs well across
 a wide variety of platforms, and is compatible with Perl versions back through
 5.6.0.
+
+And as mentioned earlier in this document, there may be circumstances where
+the performance of the operating system's strong random source is prohibitive
+from using the module's default seeding configuration.  Use the OO interface
+instead, and read the documentation for L<Crypt::Random::Seed> to learn what
+options are available.
+
+Prior to version 0.20, a heavy dependency chain was required for reliably
+and securely seeding the ISAAC generator.  Earlier versions required
+L<Crypt::Random::Source>, which in turn required L<Any::Moose>.  Thanks to Dana
+Jacobsen's new Crypt::Random::Seed module, this situation has been resolved.
+So if you're looking for a secure random bytes solution that "just works"
+portably, and on Perl versions as far back as 5.6.0, you've come to the right
+place.  Users of older versions of this module are encouraged to update to
+version 0.20 or newer to benefit from the improved user interface and lighter
+dependency chain.
+
+
+=head2 OPTIONAL (RECOMMENDED) DEPENDENCY
 
 If performance is a consideration, you may also install 
 L<Math::Random::ISAAC::XS>. Bytes::Random::Secure's random number generator 
@@ -668,18 +691,6 @@ performance.  If you need to produce your random bytes more quickly, simply
 installing Math::Random::ISAAC::XS will result in it automatically being used,
 and a pretty good performance improvement will coincide.
 
-And as mentioned earlier in this document, there may be circumstances where
-the performance of the operating system's random entropy source prohibits using
-the module's default seeding configuration.  Use the OO interface instead, and
-read the documentation for L<Crypt::Random::Seed> to learn what options are
-available.
-
-Prior to version 0.20, a heavy dependency chain was required for reliably
-and securely seeding the ISAAC generator.  Thanks to Dana Jacobsen's new
-Crypt::Random::Seed module, this situation has been resolved.  So if you're
-looking for a secure random bytes solution that "just works" portably, and on
-Perl's as far back as 5.6.0, you've come to the right place.  Users are
-encouraged to update to version 0.20 or newer.
 
 =head1 CAVEATS
 
@@ -694,10 +705,10 @@ provide a simple user experience (thus reducing the propensity for getting it
 wrong).  A terciary goal is to minimize the dependencies required to achieve the
 primary and secondary goals, to the extent that is practical.
 
-This module steals some code from L<Math::Random::Secure>.  That module is an
-excellent resource, but implements a broader range of functionality than is
-needed here.  So we just borrowed some code from it to keep the dependencies
-light.
+To keep the dependencies as light as possible this module steals some code from
+L<Math::Random::Secure>.  That module is an excellent resource, but implements a
+broader range of functionality than is needed here.  So we just borrowed some
+code from it.
 
 The primary source of random data in this module comes from the excellent
 L<Math::Random::ISAAC>.  To be useful and secure, even Math::Random::ISAAC
@@ -710,7 +721,11 @@ However, it is possible (and has been seen in testing) that the system's random
 entropy source might not have enough entropy in reserve to generate the seed
 requested by this module without blocking.  If you suspect that you're a victim
 of blocking from reads on C</dev/random>, your best option is to manipulate
-the random seed configuration by using the C<config_seed> class method.
+the random seed configuration by using the C<config_seed> class method.  This
+module does seed as lazily as possible so that using the module, and even
+instantiating a Bytes::Random::Seed object will not trigger reads from
+C</dev/random>.  Only the first time the object is used to deliver random bytes
+will the RNG be seeded.
 
 A note regarding modulo bias:  Care is taken such that there is no modulo bias
 in the randomness returned either by C<random_bytes> or its siblings, nor by
