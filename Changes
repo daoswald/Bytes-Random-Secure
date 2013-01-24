@@ -2,13 +2,20 @@ Revision history for Bytes::Random::Secure
 
 0.20 2013-01-22
   - This is a major release.  Much thanks to Dana Jacobson for his ideas,
-    suggestions, and code reviews.
+    suggestions, code reviews, and for writing Crypt::Random::Seed.
   - Major refactoring / rewrite.
   - Built an OO base layer over which the functions interface is a thin wrapper.
   - OO interface exposed publically.
   - Documented all functions. (POD)
   - removed config_seed() (never publically released).
-  - Major enhancements to test suite.
+  - Major enhancements to test suite. (Coverage is 98.9%)
+  - ALL OF THE FOLLOWING CHANGES ARE FROM (UNRELEASED) 0.13:
+  - * Compatible with Perl 5.6.
+  - * Dropped Crypt::Random::Source dependency in favor of Crypt::Random::Seed.
+  - * Seeding is lazy.
+  - * Minimum seed size: 2-longs (64 bits).  Maximum, 16 longs (512 bits).
+  - * Documented how to configure seeding.
+
 0.13 2013-01-15 (Never released)
   - POD clarification, enhancement.
   - Improved backwards compatibility support for Perl v5.6.x.
