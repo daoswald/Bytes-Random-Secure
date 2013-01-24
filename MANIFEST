@@ -20,6 +20,5 @@ t/20-functions.t
 t/21-bytes_random_tests.t
 t/22-random_string_from.t
 t/24-oo_construct.t
-t/25-oo_accessors.t
 t/26-oo_public.t
 examples/random-sha512.pl
