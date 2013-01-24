@@ -26,7 +26,7 @@ our @EXPORT = qw( random_bytes );    ## no critic(export)
 our $VERSION = '0.20';
 
 # Seed size: 512 bits is sixteen 32-bit integers.
-use constant SEED_SIZE => 512;       # In bits
+use constant SEED_SIZE => 256;       # In bits
 use constant SEED_MIN  => 64;
 use constant SEED_MAX  => 512;
 use constant PRNG      => 'ISAAC';
@@ -46,7 +46,7 @@ use constant OO_ATTRIBS => {
 use constant FUNC_STD => {
     Weak        => 0,
     NonBlocking => 0,
-    Bits        => 256,
+    Bits        => SEED_SIZE,
 };
 
 
@@ -564,7 +564,7 @@ L<Crypt::Random::Seed> is configured.
 
 The constructor is used to specify how the ISAAC generator is seeded.  Future
 versions may also allow for an alternate PSRNG to be selected.  If no parameters
-are passed the default configuration specifies 512 bits for the seed.  The rest
+are passed the default configuration specifies 256 bits for the seed.  The rest
 of the default configuration accepts the L<Crypt::Random::Seed> defaults, which
 favor the strongest operating system provided entropy source, which in many
 cases may be "blocking".
@@ -577,7 +577,7 @@ cases may be "blocking".
     
 The C<Bits> parameter specifies how many bits (rounded up to nearest multiple of
 32) will be used in seeding the ISAAC random number generator.  The default is
-512 bits of entropy.  But in some cases it may not be necessary, or even wise to
+256 bits of entropy.  But in some cases it may not be necessary, or even wise to
 pull so many bits of entropy out of C</dev/random> (a blocking source).
 
 Any value between 64 and 512 will be accepted. If an out-of-range value is
@@ -654,8 +654,8 @@ strong source.
 There may be times when the default seed characteristics carry too heavy a
 burden on system resources.  The default seed for the functions interface is
 256 bits of entropy taken from /dev/random (a blocking source on many systems),
-or via API calls on Windows.  The default seed size for the OO interface is
-512 bits. If /dev/random should become depleted at the time that this module
+or via API calls on Windows.  The default seed size for the OO interface is also
+256 bits. If /dev/random should become depleted at the time that this module
 attempts to seed the ISAAC generator, there could be delay while additional
 system entropy is generated.  If this is a problem, it is possible to override
 the default seeding characteristics using the OO interface instead of the

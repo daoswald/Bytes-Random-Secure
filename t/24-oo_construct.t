@@ -141,6 +141,13 @@ is_deeply( { $random->_build_seed_options() },
 is( scalar @{[$random->_generate_seed( Source => \&null_source )]}, 4,
     '_generate_seed() returns four longs when seed size set to 128 bits.' );
 
+my $crs = undef;
+eval { $crs = $random->_generate_seed( Only => [] ); };
+like( $@, qr/Unable to obtain a strong seed source/,
+      '_generate_seed(): If unable to seed appropriately, throw exception.' );
+
+ok( ! defined $crs, '_generate_seed(): Nothing returned if unable to seed.' );
+
 ###########################
 # Test _instantiate_rng() #
 ###########################

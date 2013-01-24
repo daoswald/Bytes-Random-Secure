@@ -8,7 +8,8 @@ Revision history for Bytes::Random::Secure
   - OO interface exposed publically.
   - Documented all functions. (POD)
   - removed config_seed() (never publically released).
-  - Major enhancements to test suite. (Coverage is 98.9%)
+  - Seed defaults for both interfaces are 256 bits.
+  - Major enhancements to test suite. (Coverage is 99.3%)
   - ALL OF THE FOLLOWING CHANGES ARE FROM (UNRELEASED) 0.13:
   - * Compatible with Perl 5.6.
   - * Dropped Crypt::Random::Source dependency in favor of Crypt::Random::Seed.
