@@ -743,8 +743,9 @@ However, it is possible (and has been seen in testing) that the system's random
 entropy source might not have enough entropy in reserve to generate the seed
 requested by this module without blocking.  If you suspect that you're a victim
 of blocking from reads on C</dev/random>, your best option is to manipulate
-the random seed configuration by using the C<config_seed> class method.  This
-module does seed as lazily as possible so that using the module, and even
+the random seed configuration by using the object oriented interface.
+
+This module seeds as lazily as possible so that using the module, and even
 instantiating a Bytes::Random::Seed object will not trigger reads from
 C</dev/random>.  Only the first time the object is used to deliver random bytes
 will the RNG be seeded.

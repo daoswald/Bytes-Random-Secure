@@ -1,5 +1,8 @@
 Revision history for Bytes::Random::Secure
 
+0.22 2013-01-25 (Draft)
+  - POD correction -- Removed reference to config_seed.
+
 0.21 2013-01-24
   - All functions and methods will now throw an exception if the byte-count
     parameter is passed something that doesn't look like an integer >= 0.
