@@ -1,6 +1,14 @@
 Revision history for Bytes::Random::Secure
 
-0.20 2013-01-22
+0.21 2013-01-24
+  - All functions and methods will now throw an exception if the byte-count
+    parameter is passed something that doesn't look like an integer >= 0.
+  - examples/*.pl updated to demonstrate new features.
+  - Remove silly check for "bag" strings longer than 2**32.
+  - Eliminate a line of unreachable code from _closest_divisor().
+  - Test coverage is now 100%.
+
+0.20 2013-01-24
   - This is a major release.  Much thanks to Dana Jacobson for his ideas,
     suggestions, code reviews, and for writing Crypt::Random::Seed.
   - Major refactoring / rewrite.

@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use 5.006000;
 use Carp;
+use Scalar::Util qw( looks_like_number );
 
 use Math::Random::ISAAC;
 use Crypt::Random::Seed;
@@ -23,7 +24,7 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.20';
+our $VERSION = '0.21';
 
 # Seed size: 512 bits is sixteen 32-bit integers.
 use constant SEED_SIZE => 256;       # In bits
@@ -204,10 +205,23 @@ sub _generate_seed {
 }
 
 
+# Validate that we are getting an integer >= 0.
+# If not, throw an exception.
+sub _validate_int {
+  my( $self, $input ) = @_;
+  croak "Byte count must be a positive integer."
+    unless    looks_like_number( $input )
+           && $input == int( $input )
+           && $input >= 0;
+  return 1;
+}
+
+
 # Random bytes string.
 sub bytes {
   my( $self, $bytes ) = @_;
   $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
+  $self->_validate_int( $bytes ); # Throws on violation.
 
   $self->_instantiate_rng unless defined $self->{_RNG};
 
@@ -253,12 +267,11 @@ sub string_from {
   $bag   = defined $bag   ? $bag   : '';
   $bytes = defined $bytes ? $bytes : 0;
   my $range = length $bag;
-
+  
+  $self->_validate_int( $bytes );
+  
   croak "Bag's size must be at least 1 character."
     if $range < 1;
-  croak "Bag's size was $range, but cannot be longer than 2**32 characters."
-    if $range > 2**32;    # Unless we want to generate a 512GB string, we
-                          # can't test this condition.
 
   my $rand_bytes = '';
   for my $random ( $self->_ranged_randoms( $range, $bytes ) ) {
@@ -301,12 +314,13 @@ sub _closest_divisor {
     croak "$range exceeds irand max limit of 2**32." if $range > 2**32;
 
     my $n = 0;
+    my $d;
     while ( $n <= 32 ) {
-        my $d = 2 ** $n++;
-        return $d if $d >= $range;
+        $d = 2 ** $n++;
+        last if $d >= $range;
     }
     
-    return; # Should be unreachable.
+     return $d;
 }
 
 
@@ -484,6 +498,8 @@ seed source.
 Returns a string containing as many random bytes as requested.  Obviously the
 string isn't useful for display, as it can contain any byte value from 0 through
 255.
+
+The parameter is a byte-count, and must be an integer greater or equal to zero.
 
 =head2 random_string_from
 
@@ -682,7 +698,7 @@ Jacobsen's new Crypt::Random::Seed module, this situation has been resolved.
 So if you're looking for a secure random bytes solution that "just works"
 portably, and on Perl versions as far back as 5.6.0, you've come to the right
 place.  Users of older versions of this module are encouraged to update to
-version 0.20 or newer to benefit from the improved user interface and lighter
+version 0.20 or higher to benefit from the improved user interface and lighter
 dependency chain.
 
 

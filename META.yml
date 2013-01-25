@@ -24,5 +24,6 @@ requires:
   MIME::Base64: 0
   MIME::QuotedPrint: 0
   Math::Random::ISAAC: 0
+  Scalar::Util: 0
   perl: 5.006000
-version: 0.20
+version: 0.21

@@ -22,3 +22,5 @@ t/22-random_string_from.t
 t/24-oo_construct.t
 t/26-oo_public.t
 examples/random-sha512.pl
+examples/random-sha512-oo.pl
+examples/random-from.pl

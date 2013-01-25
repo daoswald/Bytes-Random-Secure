@@ -22,12 +22,31 @@ can_ok( 'main', @main::functions );                  # Imported.
 
 
 
-foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
+foreach my $want ( qw/ 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
   my $correct = $want >= 0 ? $want : 0;
   is( length random_bytes( $want ), $correct,
       "random_bytes($want) returns $correct bytes." );
 }
 
+
+{
+  local $@;
+  eval {
+    my $bytes = random_bytes( -1 );
+  };
+
+  like( $@, qr/Byte count must be a positive integer/,
+        'random_bytes: requesting negative byte count throws an exception.' );
+}
+
+{
+  local $@;
+  eval {
+    my $bytes = random_bytes( { Illegal => 1 } );
+  };
+  like( $@, qr/Byte count must be a positive integer/,
+        'random_bytes: Non-integer input throws an exception.' );
+}
 
 
 # This test only runs for random_bytes().  No need to run it for
@@ -67,7 +86,7 @@ diag "Average iterations: $avg_count (expect approx 3012).";
 
 # random_bytes_hex (and _lite) tests.
 
-foreach my $want ( qw/ -1 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
+foreach my $want ( qw/ 0 1 2 3 4 5 6 7 8 16 17 1024 10000 / ) {
   my $result  = random_bytes_hex( $want );
   my $correct = $want >= 0 ? $want * 2 : 0;
   is( length random_bytes_hex( $want ), $correct,
@@ -80,10 +99,6 @@ ok( random_bytes_hex(128) =~ /^[[:xdigit:]]+$/,
 
 
 # random_bytes_base64 (and _lite) tests.
-
-is( length random_bytes_base64(-1), 0,
-    'random_bytes_base64(-1) returns an empty string.' );
-
 
 is( length random_bytes_base64(0),  0,
     'random_bytes_base64(0) returns an empty string.'  );
@@ -107,9 +122,6 @@ ok( random_bytes_base64(128, q{}) =~ /^[^\n]+$/,
 
 
 # random_bytes_qp (and _lite) tests.
-
-is( length random_bytes_qp(-1), 0,
-    'random_bytes_qp(-1) returns an empty string.' );
 
 
 is( length random_bytes_qp(0),  0,

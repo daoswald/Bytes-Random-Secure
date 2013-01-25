@@ -12,10 +12,14 @@ use Bytes::Random::Secure;
 
 # Test the constructor, and its helper functions.
 
+# There are also a few "private functions" tests that do not pertain directly
+# to the constructor.
+
 can_ok( 'Bytes::Random::Secure',
         qw/ new                     _build_args         _validate_args
             _round_bits_to_ge_32    _constrain_bits     _build_attributes
-            _build_seed_options     _generate_seed      _instantiate_rng  / );
+            _build_seed_options     _generate_seed      _instantiate_rng
+            _validate_int                                                 / );
 
 
 # A dummy source so we don't drain entropy.
@@ -154,5 +158,52 @@ ok( ! defined $crs, '_generate_seed(): Nothing returned if unable to seed.' );
 
 is( ref $random->_instantiate_rng(), 'Math::Random::ISAAC',
     '_instantiate_rng(): Default RNG is Math::Random::ISAAC' );
+
+########################
+# Test _validate_int() #
+########################
+
+ok( eval { $random->_validate_int(1); 1; },
+    '_validate_int(1): Legitimate positive int passes.' );
+
+ok( eval { $random->_validate_int( 0 ); 1; },
+    '_validate_int(0): Allow zero.' );
+
+
+{
+  local $@;
+  eval {
+    $random->_validate_int( { Illegal => 1 } );
+  };
+  like( $@, qr/Byte count must be a positive integer/,
+        '_validate_int(): Non integer input throws.' );
+}
+
+{
+  local $@;
+  eval {
+    $random->_validate_int( 'illegal' );
+  };
+  like( $@, qr/Byte count must be a positive integer/,
+        '_validate_int(): Must "look like a number".' );
+}
+
+{
+  local $@;
+  eval {
+    $random->_validate_int( -1 );
+  };
+  like( $@, qr/Byte count must be a positive integer/,
+        '_validate_int(-1): Must be >= 0.' );
+}
+
+{
+  local $@;
+  eval {
+    $random->_validate_int( 1.5 );
+  };
+  like( $@, qr/Byte count must be a positive integer/,
+        '_validate_int(1.5): Must be an integer.' );
+}
 
 done_testing();

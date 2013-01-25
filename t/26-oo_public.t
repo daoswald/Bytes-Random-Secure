@@ -36,4 +36,23 @@ like( $random->bytes_hex(16), qr/^[1234567890abcdef]{32}$/,
 like( $random->string_from('abc', 100 ), qr/^[abc]{100}$/,
       'string_from() returns proper length and proper string.' );
 
+{
+  local $@;
+  eval {
+    my $bytes = $random->bytes( -5 );
+  };
+  like( $@, qr/Byte count must be a positive integer/,
+        'bytes() throws on invalid input.' );
+}
+
+{
+  local $@;
+  eval {
+    my $bytes = $random->string_from( 'abc', -5 );
+  };
+  like( $@, qr/Byte count must be a positive integer/,
+        'string_from(): Throws an exception on invalid byte count.' );
+}
+
+
 done_testing();
