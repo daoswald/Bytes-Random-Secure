@@ -20,6 +20,11 @@ To install this module, run the following commands:
     make test
     make install
 
+Or preferably, let your favorite CPAN installer do the work for you.  Users
+are encouraged to use a fairly modern version of their CPAN installer, 
+particularly if building this distribution on Perl versions that
+preceed Perl 5.8.9.
+
 SUPPORT AND DOCUMENTATION
 
 After installing, you can find documentation for this module with the
