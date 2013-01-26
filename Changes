@@ -1,8 +1,17 @@
 Revision history for Bytes::Random::Secure
 
 0.22 2013-01-25 (Draft)
+  - Implement suggestions from Dana Jacobsen (Unicode, minimum dependency
+    versions, installation on older Perls).
   - POD correction -- Removed reference to config_seed.
-
+  - POD: Added INSTALLATION section to address issues with older Perls.
+  - POD: Clarified "CAVIETS" with discussion of Unicode support in pre-5.8.9.
+  - Added t/23-string_from_unicode.t to test Unicode on Perl 5.8.9+.
+  - Added a Unicode example to examples/random_from.pl.
+  - Set a CONFIGURE_REQUIRES to pull in a recent ExtUtils::MakeMaker.
+  - Set minimum versions on some Core modules from which we're using newer
+    features, or which behaved badly in old 5.6.x-contemporary versions.
+    
 0.21 2013-01-24
   - All functions and methods will now throw an exception if the byte-count
     parameter is passed something that doesn't look like an integer >= 0.

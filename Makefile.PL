@@ -7,9 +7,9 @@ my %PREREQ_PM = (
     'Crypt::Random::Seed'   => '0',    # Provides a high quality seed.
     'Math::Random::ISAAC'   => '0',    # Provides our random number generator.
     'MIME::Base64'          => '0',    # Core.
-    'MIME::QuotedPrint'     => '0',    # Core.
+    'MIME::QuotedPrint'     => '3.03', # Core, but minimum version requirement.
     'Carp'                  => '0',    # Core.
-    'Scalar::Util'          => '0',    # Core.
+    'Scalar::Util'          => '1.21', # Core, but minimum version requirement.
 );
 
 WriteMakefile(
@@ -21,12 +21,24 @@ WriteMakefile(
         ? ( 'LICENSE' => 'perl' )
         : () ),
     PL_FILES  => {},
+    CONFIGURE_REQUIRES => {
+      'ExtUtils::MakeMaker' => '6.56',
+    },
     BUILD_REQUIRES => {
       'Test::More'    => '0.98',    # A recent version is needed.
-      'Test::Warn'    => '0',
+      'Test::Warn'    => '0.24',    # "Compatibility with Carp 1.25"
     },
     MIN_PERL_VERSION => '5.006000',
     PREREQ_PM => \%PREREQ_PM,
+    META_MERGE => {
+      'resources' => {
+        'repository'  => {
+          'url'   => 'git://github.com/daoswald/Bytes-Random-Secure.git',
+          'web'   => 'http://github.com/daoswald/Bytes-Random-Secure',
+          'type'  => 'git',
+        },
+      },
+    },
     dist      => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'Bytes-Random-Secure-*' },
 );

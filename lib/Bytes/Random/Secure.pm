@@ -1,4 +1,5 @@
 ## no critic (constant,unpack)
+
 package Bytes::Random::Secure;
 
 use strict;
@@ -716,6 +717,8 @@ and a pretty good performance improvement will coincide.
 
 =head1 CAVEATS
 
+=head2 STRONG RANDOMNESS
+
 It's easy to generate weak pseudo-random bytes.  It's also easy to think you're
 generating strong pseudo-random bytes when really you're not.  And it's hard to
 test for pseudo-random cryptographic acceptable quality.
@@ -726,6 +729,8 @@ provide cryptographically secure pseudo-random bytes.  A secondary goal is to
 provide a simple user experience (thus reducing the propensity for getting it
 wrong).  A terciary goal is to minimize the dependencies required to achieve the
 primary and secondary goals, to the extent that is practical.
+
+=head2 DEPENDENCIES
 
 To keep the dependencies as light as possible this module steals some code from
 L<Math::Random::Secure>.  That module is an excellent resource, but implements a
@@ -739,7 +744,13 @@ L<Crypt::Random::Seed>.  To date, there are no known weaknesses in the ISAAC
 algorithm.  And Crypt::Random::Seed does a very good job of preventing fall-back
 to weak seed sources.
 
-However, it is possible (and has been seen in testing) that the system's random
+This module requires Perl 5.6 or newer.  The module also uses a number of core
+modules, some of which require newer versions than those contemporary with 5.6.
+See the INSTALLATION section in this document for details.
+
+=head2 BLOCKING ENTROPY SOURCE
+
+It is possible (and has been seen in testing) that the system's random
 entropy source might not have enough entropy in reserve to generate the seed
 requested by this module without blocking.  If you suspect that you're a victim
 of blocking from reads on C</dev/random>, your best option is to manipulate
@@ -750,15 +761,52 @@ instantiating a Bytes::Random::Seed object will not trigger reads from
 C</dev/random>.  Only the first time the object is used to deliver random bytes
 will the RNG be seeded.
 
-A note regarding modulo bias:  Care is taken such that there is no modulo bias
-in the randomness returned either by C<random_bytes> or its siblings, nor by
-C<random_string_from>.  As a matter if fact, this is exactly I<why> the
-C<random_string_from> function is useful.  However, the algorithm to eliminate
-modulo bias can impact the performance of the C<random_string_from> function.
-Any time the length of the bag string is significantly less than the nearest
-greater or equal factor of 2**32, performance suffers.  Unfortunately there is
-no known algorithm that improves upon this situation.  Fortunately, for sanely
-sized strings, it's a minor issue.
+=head2 UNICODE SUPPORT
+
+The C<random_string_from> function, and C<string_from> method permit the user
+to pass a "bag" (or source) string containing Unicode characters.  For any
+modern Perl version, this will work just as you would hope.  But some versions
+of Perl older than 5.8.9 exhibited varying degrees of buggyness in their
+handling of Unicode.  If you're depending on the Unicode features of this
+module while using Perl versions older than 5.8.9 be sure to test thoroughly,
+and don't be surprised when the outcome isn't as expected.  ...this is to be
+expected.  Upgrade.
+
+No other functions or methods in this module get anywhere near Perl's Unicode
+features.  So as long as you're not passing Unicode source strings to
+C<random_string_from>, you have nothing to worry about, even if you're using
+Perl 5.6.0.
+
+=head2 MODULO BIAS
+
+Care is taken such that there is no modulo bias in the randomness returned
+either by C<random_bytes> or its siblings, nor by C<random_string_from>.  As a
+matter if fact, this is exactly I<why> the C<random_string_from> function is
+useful.  However, the algorithm to eliminate modulo bias can impact the
+performance of the C<random_string_from> function. Any time the length of the
+bag string is significantly less than the nearest greater or equal factor
+of 2**32, performance suffers.  Unfortunately there is no known algorithm that
+improves upon this situation.  Fortunately, for sanely sized strings, it's a
+minor issue.
+
+=head1 INSTALLATION
+
+This module should install without any fuss on modern versions of Perl.  For
+older Perl versions (particularly 5.6 and early 5.8.x's), it may be necessary to
+update your CPAN installer to a more modern version before installing this
+this module.
+
+Another alternative for those with old Perl versions who don't want to update
+their CPAN installer (You must know you're crazy, right?): Review C<Makefile.PL>
+and assure that you've got the dependencies listed under C<PREREQ_PM> and
+C<BUILD_REQUIRES>, in at least the minimum versions specified.  Then proceed as
+usual. 
+
+This module only has two non-Core dependencies.  But it does expect that some
+of the Core dependencies are newer than those supplied with 5.6 or early 5.8's.
+If you keep your CPAN installer up-to-date, you shouldn't have to think about
+this, as it will usually just "do the right thing", pulling in newer dependency
+versions as directed by the module's META files.
 
 =head1 AUTHOR
 

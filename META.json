@@ -23,12 +23,12 @@
       "build" : {
          "requires" : {
             "Test::More" : "0.98",
-            "Test::Warn" : "0"
+            "Test::Warn" : "0.24"
          }
       },
       "configure" : {
          "requires" : {
-            "ExtUtils::MakeMaker" : "0"
+            "ExtUtils::MakeMaker" : "6.56"
          }
       },
       "runtime" : {
@@ -36,13 +36,14 @@
             "Carp" : "0",
             "Crypt::Random::Seed" : "0",
             "MIME::Base64" : "0",
-            "MIME::QuotedPrint" : "0",
+            "MIME::QuotedPrint" : "3.03",
             "Math::Random::ISAAC" : "0",
-            "Scalar::Util" : "0",
+            "Scalar::Util" : "1.21",
             "perl" : "5.006000"
          }
       }
    },
    "release_status" : "stable",
+   "resources" : {},
    "version" : "0.21"
 }

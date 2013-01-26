@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+use utf8;
 
 use Bytes::Random::Secure qw( random_string_from );
 
@@ -13,3 +14,14 @@ my $bag = 'abcde';
 my $string = random_string_from( $bag, $quantity );
 
 print $string, "\n";
+
+# Unicode strings are ok too (Perl 5.8.9 or better):
+
+if( $^V && $^V ge v5.8.9 ) {
+  
+  $string = random_string_from( 'Ѧѧ', 64 );
+
+  binmode STDOUT, ':encoding(UTF-8)';
+  print $string, "\n";
+
+}
