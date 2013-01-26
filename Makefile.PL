@@ -40,5 +40,5 @@ WriteMakefile(
       },
     },
     dist      => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean => { FILES => 'Bytes-Random-Secure-*' },
+    clean     => { FILES => 'Bytes-Random-Secure-*',       },
 );

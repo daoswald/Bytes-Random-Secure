@@ -27,4 +27,4 @@ requires:
   Scalar::Util: 1.21
   perl: 5.006000
 resources: {}
-version: 0.21
+version: 0.22
