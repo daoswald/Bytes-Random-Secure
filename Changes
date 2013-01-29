@@ -1,8 +1,8 @@
 Revision history for Bytes::Random::Secure
 
-0.22 2013-01-25 (Draft)
-  - Implement suggestions from Dana Jacobsen (Unicode, minimum dependency
-    versions, installation on older Perls).
+0.22 2013-01-29
+  - Implement suggestions from Dana Jacobsen (Unicode tests, specify minimum 
+    versions for dependencies, document installation on older Perls).
   - POD correction -- Removed reference to config_seed.
   - POD: Added INSTALLATION section to address issues with older Perls.
   - POD: Clarified "CAVIETS" with discussion of Unicode support in pre-5.8.9.
