@@ -5,7 +5,7 @@ Revision history for Bytes::Random::Secure
     versions for dependencies, document installation on older Perls).
   - POD correction -- Removed reference to config_seed.
   - POD: Added INSTALLATION section to address issues with older Perls.
-  - POD: Clarified "CAVIETS" with discussion of Unicode support in pre-5.8.9.
+  - POD: Clarified "CAVEATS" with discussion of Unicode support in pre-5.8.9.
   - Added t/23-string_from_unicode.t to test Unicode on Perl 5.8.9+.
   - Added a Unicode example to examples/random_from.pl.
   - Set a CONFIGURE_REQUIRES to pull in a recent ExtUtils::MakeMaker.

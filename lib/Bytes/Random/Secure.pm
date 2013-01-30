@@ -860,8 +860,8 @@ improving the portability and backward compatibility of this module.  Also for
 providing a patch to this module that greatly improved the performance
 of C<random_bytes>.
 
-Dana Jacosen also provided extensive input that helped guide the direction this
-module has taken.  Thanks!
+Dana Jacosen also provided extensive input, code reviews, and testing that 
+helped to guide the direction this module has taken.  Thanks!
 
 L<Bytes::Random> for implementing a nice interface that this module patterns
 itself after.
