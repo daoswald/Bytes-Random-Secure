@@ -22,7 +22,9 @@ my $random = Bytes::Random::Secure->new(
 my @divisors = (  1,  1,  2,  4,  4,  8,  8,  8,  8,
                  16, 16, 16, 16, 16, 16, 16, 16,
                  32, 32, 32, 32, 32, 32, 32, 32, 32
-); # Nearest factor of 2**32 >= $ix;
+);
+
+# Nearest factor of 2**32 >= $ix;
 
 for my $ix ( 0 .. $#divisors ) {
   is( $random->_closest_divisor($ix), $divisors[$ix],
@@ -41,7 +43,8 @@ ok( ! eval { $random->_closest_divisor(2**33); 1 },
 is( $random->_closest_divisor(2**32), 2**32,
     "_closest_divisor(2**32) == 2**32." );
 
-
+is( $random->_closest_divisor( 2**32 - 1 ), 2**32,
+    '_closest_divisor(2**32-1) == 2**32' );
 
 # Tests for _ranged_randoms().
 

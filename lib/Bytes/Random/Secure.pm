@@ -307,6 +307,9 @@ sub _ranged_randoms {
     return @randoms;
 }
 
+
+# Find nearest factor of 2**32 >= $range.
+
 sub _closest_divisor {
     my ( $self, $range ) = @_;
     $range = defined $range ? $range : 0;
@@ -727,22 +730,22 @@ Assuring strong (ie, secure) random bytes in a way that works across a wide
 variety of platforms is also challenging.  A primary goal for this module is to
 provide cryptographically secure pseudo-random bytes.  A secondary goal is to
 provide a simple user experience (thus reducing the propensity for getting it
-wrong).  A terciary goal is to minimize the dependencies required to achieve the
-primary and secondary goals, to the extent that is practical.
+wrong).  A terciary goal is to minimize the dependencies required to achieve
+the primary and secondary goals, to the extent that is practical.
 
 =head2 DEPENDENCIES
 
 To keep the dependencies as light as possible this module steals some code from
-L<Math::Random::Secure>.  That module is an excellent resource, but implements a
-broader range of functionality than is needed here.  So we just borrowed some
+L<Math::Random::Secure>.  That module is an excellent resource, but implements
+a broader range of functionality than is needed here.  So we just borrowed some
 code from it.
 
 The primary source of random data in this module comes from the excellent
 L<Math::Random::ISAAC>.  To be useful and secure, even Math::Random::ISAAC
 needs a cryptographically sound seed, which we derive from
 L<Crypt::Random::Seed>.  To date, there are no known weaknesses in the ISAAC
-algorithm.  And Crypt::Random::Seed does a very good job of preventing fall-back
-to weak seed sources.
+algorithm.  And Crypt::Random::Seed does a very good job of preventing
+fall-back to weak seed sources.
 
 This module requires Perl 5.6 or newer.  The module also uses a number of core
 modules, some of which require newer versions than those contemporary with 5.6.
@@ -753,8 +756,8 @@ See the INSTALLATION section in this document for details.
 It is possible (and has been seen in testing) that the system's random
 entropy source might not have enough entropy in reserve to generate the seed
 requested by this module without blocking.  If you suspect that you're a victim
-of blocking from reads on C</dev/random>, your best option is to manipulate
-the random seed configuration by using the object oriented interface.
+of blocking from reads on C</dev/random>, one option is to manipulate the
+random seed configuration by using the object oriented interface.
 
 This module seeds as lazily as possible so that using the module, and even
 instantiating a Bytes::Random::Seed object will not trigger reads from
@@ -785,9 +788,14 @@ matter if fact, this is exactly I<why> the C<random_string_from> function is
 useful.  However, the algorithm to eliminate modulo bias can impact the
 performance of the C<random_string_from> function. Any time the length of the
 bag string is significantly less than the nearest greater or equal factor
-of 2**32, performance suffers.  Unfortunately there is no known algorithm that
-improves upon this situation.  Fortunately, for sanely sized strings, it's a
-minor issue.
+of 2**32, performance will degrade.  Unfortunately there is no known algorithm
+that improves upon this situation.  Fortunately, for sanely sized strings, it's
+a minor issue.  To put it in perspective, even in the case of passing a "bag"
+string of length 2**31 (which is huge), the expected time to return random
+bytes will only double.  Given that the entire Unicode range is just over a
+million possible code-points, it seems unlikely that the normal use case would
+ever have to be concerned with the performance of the C<random_string_from>
+function.
 
 =head1 INSTALLATION
 

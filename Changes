@@ -1,5 +1,10 @@
 Revision history for Bytes::Random::Secure
 
+0.23 2012-01-30
+  - Clarified the (small) magnitude of the performance issues surrounding
+    random_string_from() (MODULO BIAS section of POD). (DANAJ's suggestion.)
+  - Added a test for _closest_divisor().
+
 0.22 2013-01-29
   - Implement suggestions from Dana Jacobsen (Unicode tests, specify minimum 
     versions for dependencies, document installation on older Perls).
