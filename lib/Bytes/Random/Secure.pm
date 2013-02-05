@@ -27,10 +27,10 @@ our @EXPORT = qw( random_bytes );    ## no critic(export)
 
 our $VERSION = '0.22';
 
-# Seed size: 512 bits is sixteen 32-bit integers.
+# Seed size: 256 bits is eight 32-bit integers.
 use constant SEED_SIZE => 256;       # In bits
 use constant SEED_MIN  => 64;
-use constant SEED_MAX  => 512;
+use constant SEED_MAX  => 8192;
 use constant PRNG      => 'ISAAC';
 
 
@@ -138,7 +138,7 @@ sub _constrain_bits {
     $bits = $min;
   }
   elsif( $bits > $max ) {
-    carp "Bits field must be <= 512 (sixteen longs). Rounding down.";
+    carp "Bits field must be <= 8192 (256 longs). Rounding down.";
     $bits = $max;
   }
   # No need for an 'else' here.
@@ -597,11 +597,20 @@ The C<Bits> parameter specifies how many bits (rounded up to nearest multiple of
 256 bits of entropy.  But in some cases it may not be necessary, or even wise to
 pull so many bits of entropy out of C</dev/random> (a blocking source).
 
-Any value between 64 and 512 will be accepted. If an out-of-range value is
+Any value between 64 and 8192 will be accepted. If an out-of-range value is
 specified, or a value that is not a multiple of 32, a warning will be generated
 and the parameter will be rounded up to the nearest multiple of 32 within the
-range of 64 through 512 bits.  So if 1024 is specified, you will get 512.  If
+range of 64 through 8192 bits.  So if 16384 is specified, you will get 8192.  If
 33 is specified, you will get 64.  
+
+B<Note:> In the Perlish spirit of "I<no arbitrary limits>", the maximum number
+of bits this module accepts is 8192, which happens to be the maximum number that
+ISAAC can utilize.  But just because you I<can> specify a seed of 8192 bits
+doesn't mean you ought to, much less need to.  And if you do, you probably want
+to use the C<NonBlocking> option, discussed below.  8192 bits is a lot to ask
+from a blocking source such as C</dev/random>, and really anything beyond 512
+bits in the seed is probably wasteful.
+
 
 =head4 PRNG
 

@@ -121,8 +121,8 @@ warning_like {
 is( $bits, 64, '_constrain_bits(): underflow rounds to in-range.' );
 
 warning_like {
-  $bits = $random->_constrain_bits( 513, 64, 512 );
-}  qr/^Bits field must be <= 512/, '_constrain_bits(513,64,512)warns';
+  $bits = $random->_constrain_bits( 8193, 64, 512 );
+}  qr/^Bits field must be <= 8192/, '_constrain_bits(8193,64,512)warns';
 is( $bits, 512, '_constrain_bits(): overflow rounds to in-range.' );
 
 is( $random->_constrain_bits( 128, 64, 512 ), 128,
