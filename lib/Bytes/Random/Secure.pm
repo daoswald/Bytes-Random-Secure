@@ -25,7 +25,7 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 # Seed size: 256 bits is eight 32-bit integers.
 use constant SEED_SIZE => 256;       # In bits
@@ -35,13 +35,13 @@ use constant PRNG      => 'ISAAC';
 
 
 use constant OO_ATTRIBS => {
-    Weak        => 0,            # Boolean. (0)            Crypt::Random::Seed
-    NonBlocking => 0,            # Boolean. (0)            Crypt::Random::Seed
-    Only        => undef,        # Aref of strings.        Crypt::Random::Seed
-    Never       => undef,        # Aref of strings.        Crypt::Random::Seed
-    Source      => undef,        # Subref or ARef.         Crypt::Random::Seed
-    PRNG        => PRNG,         # String. Alt RNG.        Internal (ISAAC)
-    Bits        => SEED_SIZE,    # Seed 64 <= Bits <= 512. Internal (512)
+    Weak        => 0,            # Boolean. (0)             Crypt::Random::Seed
+    NonBlocking => 0,            # Boolean. (0)             Crypt::Random::Seed
+    Only        => undef,        # Aref of strings.         Crypt::Random::Seed
+    Never       => undef,        # Aref of strings.         Crypt::Random::Seed
+    Source      => undef,        # Subref or ARef.          Crypt::Random::Seed
+    PRNG        => PRNG,         # String. Alt RNG.         Internal (ISAAC)
+    Bits        => SEED_SIZE,    # Seed 64 <= Bits <= 8192. Internal (256)
 };
 
 # Function interface seed attributes (standard, and lite).

@@ -5,6 +5,9 @@ Revision history for Bytes::Random::Secure
     random_string_from() (MODULO BIAS section of POD). (DANAJ's suggestion.)
   - Added a test for _closest_divisor().
   - Added a POD section discussing ISAAC's strengths.
+  - Increased SEED_MAX bits from 512 (arbitrary) to 8192 (theoretical
+    max for ISAAC).  Added explanation to POD, and adjusted tests.
+  - Minor corrections in # code comments (accuracy).
 
 0.22 2013-01-29
   - Implement suggestions from Dana Jacobsen (Unicode tests, specify minimum 
