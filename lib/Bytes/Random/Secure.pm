@@ -307,6 +307,9 @@ sub _ranged_randoms {
     return @randoms;
 }
 
+
+# Find nearest factor of 2**32 >= $range.
+
 sub _closest_divisor {
     my ( $self, $range ) = @_;
     $range = defined $range ? $range : 0;
@@ -514,9 +517,9 @@ get more weight.  For example, C<random_string_from( 'aab', 1 )> would have a
 66.67% chance of returning an 'a', and a 33.33% chance of returning a 'b'.  For
 unweighted distribution, ensure there are no duplicates in C<$bag>.
 
-This isn't a "draw and discard", or a permutation algorithm; each character
+This I<isn't> a "draw and discard", or a permutation algorithm; each character
 selected is independent of previous or subsequent selections; duplicate
-selections are possible by design.
+selections are possible by design. 
 
 Return value is a string of size C<$length>, of characters chosen at random
 from the 'bag' string.
@@ -578,6 +581,7 @@ L<Crypt::Random::Seed> is configured.
 =head2 new
 
     my $random = Bytes::Random::Secure->new( Bits => 512 );
+    my $bytes  = $random->bytes( 32 );
 
 The constructor is used to specify how the ISAAC generator is seeded.  Future
 versions may also allow for an alternate PSRNG to be selected.  If no parameters
@@ -621,7 +625,7 @@ aside from Math::Random::ISAAC.
 
 Reserved for future use.
 
-=head4 Crypt::Random::Seed Configuration Parameters
+=head4 Other Crypt::Random::Seed Configuration Parameters
 
 For additional seeding control, refer to the POD for L<Crypt::Random::Seed>.
 By supplying a Crypt::Random::Seed parameter to Bytes::Random::Secure's
@@ -673,7 +677,7 @@ You guessed it: Identical in function to C<random_bytes_qp>.
 
 L<Bytes::Random::Secure>'s interface I<keeps it simple>.  There is generally 
 nothing to configure.  This is by design, as it eliminates much of the 
-potential for diminishing the quality of the random byte stream by through
+potential for diminishing the quality of the random byte stream through
 misconfiguration.  The ISAAC algorithm is used as our factory, seeded with a
 strong source.
 
@@ -730,31 +734,46 @@ and a pretty good performance improvement will coincide.
 
 It's easy to generate weak pseudo-random bytes.  It's also easy to think you're
 generating strong pseudo-random bytes when really you're not.  And it's hard to
-test for pseudo-random cryptographic acceptable quality.
+test for pseudo-random cryptographic acceptable quality.  There are many high
+quality random number generators that are suitable for statistical purposes,
+but not necessarily up to the rigors of cryptographic use.
 
 Assuring strong (ie, secure) random bytes in a way that works across a wide
 variety of platforms is also challenging.  A primary goal for this module is to
 provide cryptographically secure pseudo-random bytes.  A secondary goal is to
 provide a simple user experience (thus reducing the propensity for getting it
-wrong).  A terciary goal is to minimize the dependencies required to achieve the
-primary and secondary goals, to the extent that is practical.
+wrong).  A terciary goal is to minimize the dependencies required to achieve
+the primary and secondary goals, to the extent that is practical.
+
+=head2 ISAAC
+
+The ISAAC algorithm is considered to be a cryptographically strong pseudo-random
+number generator.  There are 1.0e2466 initial states.  The best known attack for
+discovering initial state would theoretically take a complexity of
+approximately 4.67e1240, which has no practical impact on ISAAC's security.
+Cycles are guaranteed to have a minimum length of 2**40, with an average cycle
+of 2**8295.  Because there is no practical attack capable of discovering
+initial state, and because the average cycle is so long, it's generally
+unnecessary to re-seed a running application.  The results are uniformly
+distributed, unbiased, and unpredictable unless the seed is known.
 
 =head2 DEPENDENCIES
 
-To keep the dependencies as light as possible this module steals some code from
-L<Math::Random::Secure>.  That module is an excellent resource, but implements a
-broader range of functionality than is needed here.  So we just borrowed some
-code from it.
+To keep the dependencies as light as possible this module uses some ideas from
+L<Math::Random::Secure>.  That module is an excellent resource, but implements
+a broader range of functionality than is needed here.  So we just borrowed
+from it.
 
 The primary source of random data in this module comes from the excellent
 L<Math::Random::ISAAC>.  To be useful and secure, even Math::Random::ISAAC
 needs a cryptographically sound seed, which we derive from
-L<Crypt::Random::Seed>.  To date, there are no known weaknesses in the ISAAC
-algorithm.  And Crypt::Random::Seed does a very good job of preventing fall-back
-to weak seed sources.
+L<Crypt::Random::Seed>.  There are no known weaknesses in the ISAAC algorithm.
+And Crypt::Random::Seed does a very good job of preventing fall-back to weak
+seed sources.
 
 This module requires Perl 5.6 or newer.  The module also uses a number of core
 modules, some of which require newer versions than those contemporary with 5.6.
+Unicode support in C<random_string_from> is best with Perl 5.8.9 or newer.
 See the INSTALLATION section in this document for details.
 
 =head2 BLOCKING ENTROPY SOURCE
@@ -762,8 +781,8 @@ See the INSTALLATION section in this document for details.
 It is possible (and has been seen in testing) that the system's random
 entropy source might not have enough entropy in reserve to generate the seed
 requested by this module without blocking.  If you suspect that you're a victim
-of blocking from reads on C</dev/random>, your best option is to manipulate
-the random seed configuration by using the object oriented interface.
+of blocking from reads on C</dev/random>, one option is to manipulate the
+random seed configuration by using the object oriented interface.
 
 This module seeds as lazily as possible so that using the module, and even
 instantiating a Bytes::Random::Seed object will not trigger reads from
@@ -788,21 +807,26 @@ Perl 5.6.0.
 
 =head2 MODULO BIAS
 
-Care is taken such that there is no modulo bias in the randomness returned
+Care is taken so that there is no modulo bias in the randomness returned
 either by C<random_bytes> or its siblings, nor by C<random_string_from>.  As a
 matter if fact, this is exactly I<why> the C<random_string_from> function is
 useful.  However, the algorithm to eliminate modulo bias can impact the
 performance of the C<random_string_from> function. Any time the length of the
 bag string is significantly less than the nearest greater or equal factor
-of 2**32, performance suffers.  Unfortunately there is no known algorithm that
-improves upon this situation.  Fortunately, for sanely sized strings, it's a
-minor issue.
+of 2**32, performance will degrade.  Unfortunately there is no known algorithm
+that improves upon this situation.  Fortunately, for sanely sized strings, it's
+a minor issue.  To put it in perspective, even in the case of passing a "bag"
+string of length 2**31 (which is huge), the expected time to return random
+bytes will only double.  Given that the entire Unicode range is just over a
+million possible code-points, it seems unlikely that the normal use case would
+ever have to be concerned with the performance of the C<random_string_from>
+function.
 
 =head1 INSTALLATION
 
 This module should install without any fuss on modern versions of Perl.  For
-older Perl versions (particularly 5.6 and early 5.8.x's), it may be necessary to
-update your CPAN installer to a more modern version before installing this
+older Perl versions (particularly 5.6 and early 5.8.x's), it may be necessary
+to update your CPAN installer to a more modern version before installing this
 this module.
 
 Another alternative for those with old Perl versions who don't want to update
@@ -869,11 +893,11 @@ improving the portability and backward compatibility of this module.  Also for
 providing a patch to this module that greatly improved the performance
 of C<random_bytes>.
 
-Dana Jacosen also provided extensive input that helped guide the direction this
-module has taken.  Thanks!
+Dana Jacosen also provided extensive input, code reviews, and testing that 
+helped to guide the direction this module has taken.  Thanks!
 
-L<Bytes::Random> for implementing a nice interface that this module patterns
-itself after.
+L<Bytes::Random> for implementing a nice, simple interface that this module
+patterns itself after.
 
 =head1 LICENSE AND COPYRIGHT
 

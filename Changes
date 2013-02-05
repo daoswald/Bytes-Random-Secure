@@ -1,11 +1,17 @@
 Revision history for Bytes::Random::Secure
 
-0.22 2013-01-25 (Draft)
-  - Implement suggestions from Dana Jacobsen (Unicode, minimum dependency
-    versions, installation on older Perls).
+0.23 2012-01-30
+  - Clarified the (small) magnitude of the performance issues surrounding
+    random_string_from() (MODULO BIAS section of POD). (DANAJ's suggestion.)
+  - Added a test for _closest_divisor().
+  - Added a POD section discussing ISAAC's strengths.
+
+0.22 2013-01-29
+  - Implement suggestions from Dana Jacobsen (Unicode tests, specify minimum 
+    versions for dependencies, document installation on older Perls).
   - POD correction -- Removed reference to config_seed.
   - POD: Added INSTALLATION section to address issues with older Perls.
-  - POD: Clarified "CAVIETS" with discussion of Unicode support in pre-5.8.9.
+  - POD: Clarified "CAVEATS" with discussion of Unicode support in pre-5.8.9.
   - Added t/23-string_from_unicode.t to test Unicode on Perl 5.8.9+.
   - Added a Unicode example to examples/random_from.pl.
   - Set a CONFIGURE_REQUIRES to pull in a recent ExtUtils::MakeMaker.
