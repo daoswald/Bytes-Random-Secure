@@ -55,5 +55,31 @@ like( $random->string_from('abc', 100 ), qr/^[abc]{100}$/,
         'string_from(): Throws an exception on invalid byte count.' );
 }
 
+my $rv = $random->irand;
+
+ok( $rv == int( $rv ), 'irand produces an integer.' );
+
+{
+  my( $min, $max );
+  for( 1 .. 10000 ) {
+    my $ir = $random->irand;
+    $min = $ir if ! defined $min;
+    $min = $ir < $min ? $ir : $min;
+    $max = $ir if ! defined $max;
+    $max = $ir > $max ? $ir : $max;
+  }
+  ok( $min >= 0, 'irand(): Minimum return value is >= 0.' );
+  ok( $max <= 2**32-1, 'irand(): Maximum return value is <= 2**32-1.' );
+}
+
+my $newirand
+  = Bytes::Random::Secure->new( NonBlocking => 1, Bits => 64 )->irand;
+
+ok( $newirand == int( $newirand ),
+    'irand instantiates a new RNG on first call with fresh object.' );
+
+ok( $newirand >= 0 && $newirand <= 2**32-1,
+    'First irand call with a new RNG is in range.' );
+    
 
 done_testing();

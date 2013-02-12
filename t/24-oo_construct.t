@@ -76,6 +76,7 @@ my %validated = $random->_validate_args( { valid => 1 }, valid => 2 );
 ok( $validated{valid} == 2,
     '_validate_args(): Passed in a valid arg and got it back.' );
 
+
 warning_like {
   %validated = $random->_validate_args( { valid => 1 }, invalid => 1 )
 } qr/^Illegal argument \(invalid\)/, "_validate_args(): Invalid warns.";

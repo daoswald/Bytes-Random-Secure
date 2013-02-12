@@ -328,6 +328,17 @@ sub _closest_divisor {
 }
 
 
+
+# irand, so that people who don't need "bytes" can enjoy B::R::S's convenience
+# without jumping through "unpack" hoops. (A suggestion from Dana Jacobsen.)
+
+sub irand {
+  my( $self ) = @_;
+  $self->_instantiate_rng unless defined $self->{_RNG};
+  return $self->{_RNG}->irand;
+}
+
+
 ################################################################################
 ##  Functions interface                                                       ##
 ################################################################################
@@ -671,6 +682,15 @@ Identical in function to C<random_bytes_base64>.
     my $random_qp = $random->bytes_qp( 80 );
 
 You guessed it: Identical in function to C<random_bytes_qp>.
+
+
+=head2 irand
+
+    my $unsigned_long = $random->irand;
+
+Returns a random 32-bit unsigned integer.  The value will satisfy
+C<<0 <= x <= 2**32-1>>.  This functionality is only available through the OO
+interface.
 
 
 =head1 CONFIGURATION
