@@ -26,7 +26,6 @@ WriteMakefile(
     },
     BUILD_REQUIRES => {
       'Test::More'    => '0.98',    # A recent version is needed.
-      'Test::Warn'    => '0.24',    # "Compatibility with Carp 1.25"
     },
     MIN_PERL_VERSION => '5.006000',
     PREREQ_PM => \%PREREQ_PM,

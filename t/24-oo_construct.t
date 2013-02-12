@@ -1,9 +1,14 @@
-## no critic (RCS,VERSION,encapsulation,Module)
+## no critic (RCS,VERSION,encapsulation,Module,eval,constant)
 
 use strict;
 use warnings;
 use Test::More;
-use Test::Warn;
+
+
+# We only test code that can generate warnings if Test::Warn is available to
+# trap and examine the warnings.  Install Test::Warn for full test coverage.
+BEGIN{ $main::test_warn = eval 'use Test::Warn; 1;'; }
+use constant SKIP_WHY   => 'Test::Warn required for full test coverage.';
 
 use 5.006000;
 
@@ -76,20 +81,32 @@ my %validated = $random->_validate_args( { valid => 1 }, valid => 2 );
 ok( $validated{valid} == 2,
     '_validate_args(): Passed in a valid arg and got it back.' );
 
+SKIP: {
+  skip SKIP_WHY, 2, unless $main::test_warn;
 
-warning_like {
-  %validated = $random->_validate_args( { valid => 1 }, invalid => 1 )
-} qr/^Illegal argument \(invalid\)/, "_validate_args(): Invalid warns.";
+  warning_like {
+    %validated = $random->_validate_args( { valid => 1 }, invalid => 1 )
+  } qr/^Illegal argument \(invalid\)/, "_validate_args(): Invalid warns.";
 
-ok( 0 == scalar keys %validated, '_validate_args(): Invalid args ignored.' );
+  ok( 0 == scalar keys %validated, '_validate_args(): Invalid args ignored.' );
 
-warning_like {
-  %validated = $random->_validate_args( { valid => 1 }, valid => undef )
-} qr/^Undefined value specified for attribute \(valid\)/,
-  "_validate_args(): Undefined attribute value warns.";
+}
 
-ok( 0 == scalar keys %validated,
-    '_validate_args(): Args dropped if value is undefined.' );
+
+
+SKIP: {
+  skip SKIP_WHY, 2, unless $main::test_warn;
+
+  warning_like {
+    %validated = $random->_validate_args( { valid => 1 }, valid => undef )
+  } qr/^Undefined value specified for attribute \(valid\)/,
+    "_validate_args(): Undefined attribute value warns.";
+
+  ok( 0 == scalar keys %validated,
+      '_validate_args(): Args dropped if value is undefined.' );
+
+}
+
 
 ###############################
 # Test _round_bits_to_ge_32() #
@@ -99,15 +116,25 @@ is( $random->_round_bits_to_ge_32(32), 32,
     '_round_bits_to_ge_32(32): Returns 32' );
 is( $random->_round_bits_to_ge_32(0),  0,
     '_round_bits_to_ge_32(0):   Returns 0 (never occurs)' );
-my $got;
-warning_like { $got = $random->_round_bits_to_ge_32(1) }
-             qr/^Bits field must be a multiple of 32\./,
-             '_round_bits_to_ge_32Rounding up of bits generates warning.';
-is( $got,  32, '_round_bits_to_ge_32(1):  Returns 32' );
-warning_like { $got = $random->_round_bits_to_ge_32(33) }
-             qr/^Bits field must be a multiple of 32\./,
-             '_round_bits_to_ge_32Rounding up of bits generates warning.';
-is( $got,  64, '_round_bits_to_ge_32(33):  Returns 64' );
+
+SKIP: {
+  skip SKIP_WHY, 4 unless $main::test_warn;
+  
+  my $got;
+  warning_like { $got = $random->_round_bits_to_ge_32(1) }
+               qr/^Bits field must be a multiple of 32\./,
+               '_round_bits_to_ge_32Rounding up of bits generates warning.';
+
+  is( $got,  32, '_round_bits_to_ge_32(1):  Returns 32' );
+
+  warning_like { $got = $random->_round_bits_to_ge_32(33) }
+               qr/^Bits field must be a multiple of 32\./,
+               '_round_bits_to_ge_32Rounding up of bits generates warning.';
+
+  is( $got,  64, '_round_bits_to_ge_32(33):  Returns 64' );
+
+}
+
 is( $random->_round_bits_to_ge_32(512), 512,
     '_round_bits_to_ge_32(512): Returns 512' );
 
@@ -115,16 +142,24 @@ is( $random->_round_bits_to_ge_32(512), 512,
 # Test _constrain_bits() #
 ##########################
 
-my $bits = 0;
-warning_like {
-  $bits = $random->_constrain_bits( 63, 64, 512 );
-}  qr/^Bits field must be >= 64/, '_constrain_bits(63,64,512) warns.';
-is( $bits, 64, '_constrain_bits(): underflow rounds to in-range.' );
+SKIP: {
+  skip SKIP_WHY, 4 unless $main::test_warn;
 
-warning_like {
-  $bits = $random->_constrain_bits( 8193, 64, 512 );
-}  qr/^Bits field must be <= 8192/, '_constrain_bits(8193,64,512)warns';
-is( $bits, 512, '_constrain_bits(): overflow rounds to in-range.' );
+  my $bits = 0;
+
+  warning_like {
+    $bits = $random->_constrain_bits( 63, 64, 512 );
+  }  qr/^Bits field must be >= 64/, '_constrain_bits(63,64,512) warns.';
+
+  is( $bits, 64, '_constrain_bits(): underflow rounds to in-range.' );
+
+  warning_like {
+    $bits = $random->_constrain_bits( 8193, 64, 512 );
+  }  qr/^Bits field must be <= 8192/, '_constrain_bits(8193,64,512)warns';
+
+  is( $bits, 512, '_constrain_bits(): overflow rounds to in-range.' );
+
+}
 
 is( $random->_constrain_bits( 128, 64, 512 ), 128,
     '_constrain_bits(128,64,512) returns input unchanged.' );

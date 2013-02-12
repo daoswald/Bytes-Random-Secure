@@ -6,7 +6,7 @@ raw bytes, hex digits, MIME Base64, or MIME QuotedPrintable.
 
 CONFIGURATION
 
-If you need better performance, install Math::Random::ISAAC::XS.  It will
+If you require better performance, install Math::Random::ISAAC::XS.  It will
 be automatically detected, and will provide better performance as you generate
 random bytes.
 

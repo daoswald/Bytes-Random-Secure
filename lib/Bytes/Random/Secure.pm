@@ -861,6 +861,10 @@ If you keep your CPAN installer up-to-date, you shouldn't have to think about
 this, as it will usually just "do the right thing", pulling in newer dependency
 versions as directed by the module's META files.
 
+Test coverage for Bytes::Random::Secure is 100% (per Devel::Cover) on any
+system that has L<Test::Warn> installed.  But to keep the module light-weight,
+Test::Warn is not dragged in by default at installation time.
+
 =head1 AUTHOR
 
 David Oswald C<< <davido [at] cpan (dot) org> >>
