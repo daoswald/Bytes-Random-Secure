@@ -4,7 +4,6 @@ author:
   - 'David Oswald <davido@cpan.org>'
 build_requires:
   Test::More: 0.98
-  Test::Warn: 0.24
 configure_requires:
   ExtUtils::MakeMaker: 6.56
 dynamic_config: 1
@@ -27,4 +26,4 @@ requires:
   Scalar::Util: 1.21
   perl: 5.006000
 resources: {}
-version: 0.22
+version: 0.23
