@@ -796,6 +796,10 @@ modules, some of which require newer versions than those contemporary with 5.6.
 Unicode support in C<random_string_from> is best with Perl 5.8.9 or newer.
 See the INSTALLATION section in this document for details.
 
+If L<Test::Warn> is installed, test coverage is 100%.  For those who don't want
+to bother installing Test::Warn, you can just take our word for it.  It's an
+optional installation dependency.
+
 =head2 BLOCKING ENTROPY SOURCE
 
 It is possible (and has been seen in testing) that the system's random

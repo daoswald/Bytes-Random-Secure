@@ -1,5 +1,10 @@
 Revision history for Bytes::Random::Secure
 
+0.24 2012-02-12
+  - Added a small explanation of Test::Warn optional dependency to the
+    DEPENDENCIES section of the POD.  Most of the explanation is in the
+    INSTALLATION section.
+
 0.23 2012-02-11
   - Clarified the (small) magnitude of the performance issues surrounding
     random_string_from() (MODULO BIAS section of POD). (DANAJ's suggestion.)
