@@ -22,6 +22,7 @@ t/22-random_string_from.t
 t/23-string_from_unicode.t
 t/24-oo_construct.t
 t/26-oo_public.t
+t/27-fips140-1.t
 examples/random-sha512.pl
 examples/random-sha512-oo.pl
 examples/random-from.pl

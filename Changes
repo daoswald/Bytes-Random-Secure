@@ -4,6 +4,11 @@ Revision history for Bytes::Random::Secure
   - Added a small explanation of Test::Warn optional dependency to the
     DEPENDENCIES section of the POD.  Most of the explanation is in the
     INSTALLATION section.
+  - Added t/27-fips140-1.t: Code taken directly from Dana Jacobsen's
+    Crypt::Random::TESHA2 module's test suite.  This test implements the
+    FIPS 140-1 tests.  See http://csrc.nist.gov/publications/fips/fips1401.htm
+  - Removed "slow" tests from t/20-functions.t: The FIPS-140 tests are superior
+    and make the older slow tests unnecessary.
 
 0.23 2012-02-11
   - Clarified the (small) magnitude of the performance issues surrounding

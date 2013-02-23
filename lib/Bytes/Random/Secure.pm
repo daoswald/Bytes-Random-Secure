@@ -25,7 +25,7 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 # Seed size: 256 bits is eight 32-bit integers.
 use constant SEED_SIZE => 256;       # In bits
@@ -777,6 +777,11 @@ initial state, and because the average cycle is so long, it's generally
 unnecessary to re-seed a running application.  The results are uniformly
 distributed, unbiased, and unpredictable unless the seed is known.
 
+To confirm the quality of the CSPRNG, this module's test suite implements the
+L<FIPS-140-1|http://csrc.nist.gov/publications/fips/fips1401.htm> tests for
+strong random number generators.  See the comments in C<t/27-fips140-1.t> for
+details.
+
 =head2 DEPENDENCIES
 
 To keep the dependencies as light as possible this module uses some ideas from
@@ -922,7 +927,8 @@ providing a patch to this module that greatly improved the performance
 of C<random_bytes>.
 
 Dana Jacosen also provided extensive input, code reviews, and testing that 
-helped to guide the direction this module has taken.  Thanks!
+helped to guide the direction this module has taken.  The code for the
+FIPS-140-1 tests was taken directly from L<Crypt::Random::TESHA2>.  Thanks!
 
 L<Bytes::Random> for implementing a nice, simple interface that this module
 patterns itself after.

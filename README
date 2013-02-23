@@ -1,7 +1,7 @@
 Bytes::Random::Secure
 
 Generate strings of cryptographic-quality pseudo-random bytes as a string of
-raw bytes, hex digits, MIME Base64, or MIME QuotedPrintable.
+raw bytes, hex digits, MIME Base64, MIME QuotedPrintable, or just long ints.
 
 
 CONFIGURATION
