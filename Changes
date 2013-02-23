@@ -1,6 +1,10 @@
 Revision history for Bytes::Random::Secure
 
-0.24 2012-02-12
+0.25 2012-02-23
+  - Removed the speed test / fall-back from t/27-fips140-1.t; it's unnecessary,
+    and could cause divide by zero errors on really fast systems.
+
+0.24 2012-02-22
   - Added a small explanation of Test::Warn optional dependency to the
     DEPENDENCIES section of the POD.  Most of the explanation is in the
     INSTALLATION section.

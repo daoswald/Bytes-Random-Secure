@@ -25,7 +25,7 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.24';
+our $VERSION = '0.25';
 
 # Seed size: 256 bits is eight 32-bit integers.
 use constant SEED_SIZE => 256;       # In bits

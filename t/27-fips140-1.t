@@ -47,34 +47,16 @@ use Time::HiRes qw/gettimeofday/;
 
 my $random = Bytes::Random::Secure->new(
   NonBlocking => 1,
-  Bits        => 64,
+  Bits        => 128,
   Weak        => 1,
 );
 
-my @rbytes;
 
-# Measure approximate speed
-my $bps;
-{
-  push @rbytes, $random->bytes(1);
-  my $t1 = gettimeofday();
-  push @rbytes, $random->bytes(1) for 1..100;
-  my $t2 = gettimeofday();
-  $bps = int(  (100 * 8) / ($t2-$t1)  );
-}
-diag "Speed: $bps bits per second";
-
-if ($bps < 500 && !$ENV{RELEASE_TESTING}) {
-  # FIPS-140 would require > 30 seconds to run.
-  plan tests => 1;
-  diag "Not gathering statistics due to slow speed";
-  ok(1);
-  exit(0);
-}
 
 plan tests => 2 + 2 + 2 + 24 + 2;
 
-push @rbytes, $random->bytes(1) for 1..2399;
+my @rbytes;
+push @rbytes, $random->bytes(1) for 1..2500;
 
 # FIPS-140 test
 {
