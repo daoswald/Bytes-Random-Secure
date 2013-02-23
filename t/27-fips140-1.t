@@ -27,14 +27,6 @@
 # Test failure at install time would typically force the CPAN installers to
 # abort installation, which is the "Perlish" solution.
 
-# One other exception to L3 compliance is that on systems where the bit-stream
-# is slower than 500bps, the test will be skipped with a diagnostic message.
-# In practical terms this should nearly impossible; the ISAAC algorithm
-# is fast enough that even when run through Devel::Cover (which slows
-# performance immensely), the author's notebook PC still managed to crank out
-# 38350bps.
-
-
 use 5.006000;
 
 use strict;
@@ -60,7 +52,7 @@ push @rbytes, $random->bytes(1) for 1..2500;
 
 # FIPS-140 test
 {
-  is( scalar @rbytes, 2500, "1 + 100 + 2399 = 2500" );
+  is( scalar @rbytes, 2500, "2500 bytes were collected." );
   my $str = join("", map { unpack("B8", $_) } @rbytes);
   is( length($str), 20000, "binary string is length 20000" );
 
