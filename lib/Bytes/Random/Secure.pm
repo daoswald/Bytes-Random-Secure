@@ -426,22 +426,23 @@ random bytes.
     ); # Seed with 64 bits, and use /dev/urandom (or other non-blocking).
 
     my $bytes = $random->bytes(32); # A string of 32 random bytes.
+    my $long  = $random->irand;     # 32-bit random integer.
 
 
 =head1 DESCRIPTION
 
-L<Bytes::Random::Secure> provides two interfaces for obtaining crypt-quality
+L<Bytes::Random::Secure> provides two interfaces for obtaining crypto-quality
 random bytes.  The simple interface is built around plain functions.  For
 greater control over the Random Number Generator's seeding, there is an Object
 Oriented interface that provides much more flexibility.
 
-The "functions" interface provides five functions that can be used any time you
-need a string (or MIME Base64 representation, or hex-digits representation, or
-Quoted Printable representation) of a specific number of random bytes.  There
-are equivalent methods available via the OO interface.
+The "functions" interface provides functions that can be used any time you need
+a string of a specific number of random bytes.  The random bytes are available
+as simple strings, or as hex-digits, Quoted Printable, or MIME Base64.  There
+are equivalent methods available from the OO interface, plus a few others.
 
 This module can be a drop-in replacement for L<Bytes::Random>, with the primary
-enhancement of using a much higher quality random number generator to create
+enhancement of using a cryptographic-quality random number generator to create
 the random data.  The C<random_bytes> function emulates the user interface of
 L<Bytes::Random>'s function by the same name.  But with Bytes::Random::Secure
 the random number generator comes from L<Math::Random::ISAAC>, and is suitable
@@ -449,7 +450,7 @@ for cryptographic purposes.  The harder problem to solve is how to seed the
 generator.  This module uses L<Crypt::Random::Seed> to generate the initial
 seeds for Math::Random::ISAAC.
 
-In addition to providing C<random_bytes()>, this module also provides four
+In addition to providing C<random_bytes()>, this module also provides several
 functions not found in L<Bytes::Random>: C<random_string_from>,
 C<random_bytes_base64()>, C<random_bytes_hex>, and C<random_bytes_qp>.
 
@@ -458,7 +459,8 @@ generates its seed, there is an object oriented interface with a constructor
 that facilitates configuring the seeding process, while providing methods that
 do everything the "functions" interface can do (truth be told, the functions
 interface is just a thin wrapper around the OO version, with some sane defaults
-selected).
+selected).  The OO interface also provides an C<irand> method, not available
+through the functions interface.
 
 =head1 RATIONALE
 
@@ -485,14 +487,12 @@ or sampling.
 =back
 
 Why use this module?  This module employs several well-designed CPAN tools to
-first generate strong random seeds, and then to instantiate a high quality
-random number factory based on the strong seed.  The code in this module really
+first generate a strong random seed, and then to instantiate a high quality
+random number generator based on the seed.  The code in this module really
 just glues together the building blocks.  However, it has taken a good deal of
 research to come up with what I feel is a strong tool-chain that isn't going to
 fall back to a weak state on some systems.  The interface is designed with
-simplicity in mind, to minimize the potential for misconfiguration.  Hopefully
-others may benefit from this work.
-
+simplicity in mind, to minimize the potential for misconfiguration.
 
 =head1 EXPORTS
 
@@ -565,11 +565,11 @@ to eliminate line-break insertions, specify an empty string: C<q{}>.
 Returns a string of hex digits representing the string of $number_of_bytes
 random bytes.
 
-Again, it should be obvious, but is worth mentioning that a hex (base16)
-representation of base256 data requires two digits for every byte requested.
-So C<length( random_bytes_hex( 16 ) )> will return 32, as it takes 32 hex digits
-to represent 16 bytes.  Simple stuff, but better to mention it now than forget
-and set a database field that's too narrow.
+It's worth mentioning that a hex (base16) representation of base256 data
+requires two digits for every byte requested. So
+C<length( random_bytes_hex( 16 ) )> will return 32, as it takes 32 hex digits to
+represent 16 bytes.  Simple stuff, but better to mention it now than forget and
+set a database field that's too narrow.
 
 =head2 random_bytes_qp
 
@@ -595,7 +595,7 @@ L<Crypt::Random::Seed> is configured.
     my $bytes  = $random->bytes( 32 );
 
 The constructor is used to specify how the ISAAC generator is seeded.  Future
-versions may also allow for an alternate PSRNG to be selected.  If no parameters
+versions may also allow for alternate CSPRNGs to be selected.  If no parameters
 are passed the default configuration specifies 256 bits for the seed.  The rest
 of the default configuration accepts the L<Crypt::Random::Seed> defaults, which
 favor the strongest operating system provided entropy source, which in many
@@ -619,12 +619,12 @@ range of 64 through 8192 bits.  So if 16384 is specified, you will get 8192.  If
 33 is specified, you will get 64.  
 
 B<Note:> In the Perlish spirit of "I<no arbitrary limits>", the maximum number
-of bits this module accepts is 8192, which happens to be the maximum number that
-ISAAC can utilize.  But just because you I<can> specify a seed of 8192 bits
-doesn't mean you ought to, much less need to.  And if you do, you probably want
-to use the C<NonBlocking> option, discussed below.  8192 bits is a lot to ask
-from a blocking source such as C</dev/random>, and really anything beyond 512
-bits in the seed is probably wasteful.
+of bits this module accepts is 8192, which is the maximum number that ISAAC can
+utilize.  But just because you I<can> specify a seed of 8192 bits doesn't mean
+you ought to, much less need to.  And if you do, you probably want to use the
+C<NonBlocking> option, discussed below.  8192 bits is a lot to ask from a
+blocking source such as C</dev/random>, and really anything beyond 512 bits in
+the seed is probably wasteful.
 
 
 =head4 PRNG
@@ -689,17 +689,16 @@ You guessed it: Identical in function to C<random_bytes_qp>.
     my $unsigned_long = $random->irand;
 
 Returns a random 32-bit unsigned integer.  The value will satisfy
-C<<0 <= x <= 2**32-1>>.  This functionality is only available through the OO
+C<< 0 <= x <= 2**32-1 >>.  This functionality is only available through the OO
 interface.
 
 
 =head1 CONFIGURATION
 
-L<Bytes::Random::Secure>'s interface I<keeps it simple>.  There is generally 
-nothing to configure.  This is by design, as it eliminates much of the 
-potential for diminishing the quality of the random byte stream through
-misconfiguration.  The ISAAC algorithm is used as our factory, seeded with a
-strong source.
+L<Bytes::Random::Secure>'s interface tries to I<keep it simple>.  There is
+generally nothing to configure.  This design, eliminates much of the  potential
+for diminishing the quality of the random byte stream through misconfiguration.
+The ISAAC algorithm is used as our factory, seeded with a strong source.
 
 There may be times when the default seed characteristics carry too heavy a
 burden on system resources.  The default seed for the functions interface is
@@ -814,9 +813,13 @@ of blocking from reads on C</dev/random>, one option is to manipulate the
 random seed configuration by using the object oriented interface.
 
 This module seeds as lazily as possible so that using the module, and even
-instantiating a Bytes::Random::Seed object will not trigger reads from
+instantiating a Bytes::Random::Secure object will not trigger reads from
 C</dev/random>.  Only the first time the object is used to deliver random bytes
-will the RNG be seeded.
+will the RNG be seeded.  Long-running scripts may prefer to force early seeding
+as close to start-up time as possible, rather than allowing it to happen later
+in a program's run-time.  This can be achieved simply by invoking any of the
+functions or methods that return a random byte.  As soon as a random byte is
+requested for the first time, the CSPRNG will be seeded.
 
 =head2 UNICODE SUPPORT
 
