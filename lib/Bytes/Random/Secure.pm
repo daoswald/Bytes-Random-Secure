@@ -297,6 +297,8 @@ sub _ranged_randoms {
     for my $n ( 1 .. $count ) {
         my $random;
 
+        # The loop rolls, and re-rolls if the random number is out of the bag's
+        # range.  This is to avoid a solution that would introduce module bias.
         do {
             $random = $self->{_RNG}->irand % $divisor;
         } while ( $random >= $range );
@@ -748,6 +750,16 @@ and a pretty good performance improvement will coincide.
 
 
 =head1 CAVEATS
+
+=head2 FORK AND THREAD SAFETY
+
+When programming for parallel computation, avoid the "functions" interface B<do>
+use the Object Oriented interface, and create a unique C<Bytes::Random::Secure> 
+object within each process or thread.  Bytes::Random::Secure uses
+a CSPRNG, and sharing the same RNG between threads or processes will share the 
+same seed and the same starting point.  This is probably not what one would 
+want to do. By instantiating the B::R::S object after forking or creating 
+threads, a unique randomness stream will be created per thread or process.
 
 =head2 STRONG RANDOMNESS
 
