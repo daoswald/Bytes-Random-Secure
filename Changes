@@ -1,9 +1,10 @@
 Revision history for Bytes::Random::Secure
 
-0.26 1111-01-01
+0.26 2012-06-22
   - Improved a test comment in t/27....t.  Removed a comment paragraph that
     isn't relevant now that the timing has been removed.
   - POD edits.
+  - POD spelling corrections (closes RT#86326).
   - Add "FORK AND THREAD SAFETY section to CAVIATS.
 
 0.25 2012-02-23

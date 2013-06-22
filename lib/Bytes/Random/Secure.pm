@@ -25,7 +25,7 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.25';
+our $VERSION = '0.26';
 
 # Seed size: 256 bits is eight 32-bit integers.
 use constant SEED_SIZE => 256;       # In bits
@@ -773,7 +773,7 @@ Assuring strong (ie, secure) random bytes in a way that works across a wide
 variety of platforms is also challenging.  A primary goal for this module is to
 provide cryptographically secure pseudo-random bytes.  A secondary goal is to
 provide a simple user experience (thus reducing the propensity for getting it
-wrong).  A terciary goal is to minimize the dependencies required to achieve
+wrong).  A tertiary goal is to minimize the dependencies required to achieve
 the primary and secondary goals, to the extent that is practical.
 
 =head2 ISAAC
@@ -838,7 +838,7 @@ requested for the first time, the CSPRNG will be seeded.
 The C<random_string_from> function, and C<string_from> method permit the user
 to pass a "bag" (or source) string containing Unicode characters.  For any
 modern Perl version, this will work just as you would hope.  But some versions
-of Perl older than 5.8.9 exhibited varying degrees of buggyness in their
+of Perl older than 5.8.9 exhibited varying degrees of bugginess in their
 handling of Unicode.  If you're depending on the Unicode features of this
 module while using Perl versions older than 5.8.9 be sure to test thoroughly,
 and don't be surprised when the outcome isn't as expected.  ...this is to be
