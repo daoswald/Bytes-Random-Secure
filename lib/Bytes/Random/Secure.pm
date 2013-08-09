@@ -306,7 +306,7 @@ sub _ranged_randoms {
         my $random;
 
         # The loop rolls, and re-rolls if the random number is out of the bag's
-        # range.  This is to avoid a solution that would introduce module bias.
+        # range.  This is to avoid a solution that would introduce modulo bias.
         do {
             $random = $self->{_RNG}->irand % $divisor;
         } while ( $random >= $range );
