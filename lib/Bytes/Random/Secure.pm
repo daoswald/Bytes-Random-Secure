@@ -274,7 +274,10 @@ sub string_from {
   croak "Bag's size must be at least 1 character."
     if $range < 1;
 
-  my $rand_bytes = '';
+  my $rand_bytes;
+  vec( $rand_bytes, $bytes, 8 ) = 0; # Pre-extend the string.
+  $rand_bytes = q{};                 # And gurantee it's empty.
+  
   for my $random ( $self->_ranged_randoms( $range, $bytes ) ) {
       $rand_bytes .= substr( $bag, $random, 1 );
   }
@@ -292,7 +295,12 @@ sub _ranged_randoms {
     $self->_instantiate_rng unless defined $self->{_RNG};
 
     my $divisor = $self->_closest_divisor($range);
+
     my @randoms;
+    
+    $#randoms = $count - 1;  # Pre-extend the @randoms array so 'push' avoids
+                             # copy on resize.
+    @randoms = ();           # Then purge it, but its memory won't be released.
 
     for my $n ( 1 .. $count ) {
         my $random;
