@@ -1,4 +1,7 @@
 Revision history for Bytes::Random::Secure
+0.27 2013-10-06
+  - Merged pull request from David Steinbrunner: specifying meta-spec
+    so metadata can be seen/used.
 
 0.26 2012-06-22
   - Improved a test comment in t/27....t.  Removed a comment paragraph that

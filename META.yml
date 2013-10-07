@@ -1,5 +1,5 @@
 ---
-abstract: 'Perl extension to generate cryptographically-secure'
+abstract: 'Perl extension to generate cryptographically-secure random bytes.'
 author:
   - 'David Oswald <davido@cpan.org>'
 build_requires:
@@ -7,7 +7,7 @@ build_requires:
 configure_requires:
   ExtUtils::MakeMaker: 6.56
 dynamic_config: 1
-generated_by: 'ExtUtils::MakeMaker version 6.66, CPAN::Meta::Converter version 2.120921'
+generated_by: 'ExtUtils::MakeMaker version 6.78, CPAN::Meta::Converter version 2.132140'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -25,5 +25,7 @@ requires:
   Math::Random::ISAAC: 0
   Scalar::Util: 1.21
   perl: 5.006000
-resources: {}
-version: 0.26
+resources:
+  Metaspec:
+    version: 2
+version: 0.27
