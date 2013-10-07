@@ -31,6 +31,7 @@ WriteMakefile(
     PREREQ_PM => \%PREREQ_PM,
     META_MERGE => {
       'resources' => {
+        'meta-spec' => { version => 2 }, 
         'repository'  => {
           'url'   => 'git://github.com/daoswald/Bytes-Random-Secure.git',
           'web'   => 'http://github.com/daoswald/Bytes-Random-Secure',
