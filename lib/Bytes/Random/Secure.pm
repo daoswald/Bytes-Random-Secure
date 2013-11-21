@@ -25,7 +25,7 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.27';
+our $VERSION = '0.28';
 
 # Seed size: 256 bits is eight 32-bit integers.
 use constant SEED_SIZE => 256;       # In bits
@@ -274,9 +274,7 @@ sub string_from {
   croak "Bag's size must be at least 1 character."
     if $range < 1;
 
-  my $rand_bytes;
-  vec( $rand_bytes, $bytes, 8 ) = 0; # Pre-extend the string.
-  $rand_bytes = q{};                 # And gurantee it's empty.
+  my $rand_bytes = q{};              # We need an empty (and defined) string.
   
   for my $random ( $self->_ranged_randoms( $range, $bytes ) ) {
       $rand_bytes .= substr( $bag, $random, 1 );

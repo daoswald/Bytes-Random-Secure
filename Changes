@@ -1,5 +1,9 @@
 Revision history for Bytes::Random::Secure
 
+0.28 2013-11-21
+  - Removed silly micro-optimization that was responsible for generating a
+    warning in Perl versions prior to 5.18.
+
 0.27 2013-10-06
   - Merged pull request from David Steinbrunner: specifying meta-spec
     so metadata can be seen/used.
