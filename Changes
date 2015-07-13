@@ -1,5 +1,9 @@
 Revision history for Bytes::Random::Secure
 
+0.29 2015-07-12
+  - Added a shuffle method available via the OO user interface.
+  - Added a SEE ALSO POD section that mentions Bytes::Random::Secure::Tiny
+
 0.28 2013-11-21
   - Removed silly micro-optimization that was responsible for generating a
     warning in Perl versions prior to 5.18.

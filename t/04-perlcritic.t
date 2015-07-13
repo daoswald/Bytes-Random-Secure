@@ -15,6 +15,7 @@ use English qw( -no_match_vars );
 if ( not $ENV{RELEASE_TESTING} ) {
     my $msg = 'Author Test: Set $ENV{RELEASE_TESTING} to a true value to run.';
     plan( skip_all => $msg );
+    done_testing();
 }
 
 # We also don't want to force a dependency on Test::Perl::Critic, so if the
@@ -25,6 +26,7 @@ eval { require Test::Perl::Critic; 1; };
 if ($EVAL_ERROR) {
     my $msg = 'Author Test: Test::Perl::Critic required to criticise code.';
     plan( skip_all => $msg );
+    done_testing();
 }
 
 # Set a higher severity level.  Note: List/BinarySearch.pm meets level 2.
@@ -35,5 +37,3 @@ Test::Perl::Critic->import( -severity => 4 );
 my @directories = qw{  blib/  t/  };
 
 Test::Perl::Critic::all_critic_ok(@directories);
-
-done_testing();

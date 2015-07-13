@@ -25,7 +25,7 @@ our @EXPORT_OK = qw(
 
 our @EXPORT = qw( random_bytes );    ## no critic(export)
 
-our $VERSION = '0.28';
+our $VERSION = '0.29';
 
 # Seed size: 256 bits is eight 32-bit integers.
 use constant SEED_SIZE => 256;       # In bits
@@ -283,7 +283,19 @@ sub string_from {
   return $rand_bytes;
 }
 
-# Helpers for string_from()
+
+sub shuffle {
+    my($self, $aref) = @_;
+    croak 'Argument must be an array reference.' unless 'ARRAY' eq ref $aref;
+    return $aref unless @$aref;
+    for (my $i = @$aref; --$i;) {
+        my $r = ($self->_ranged_randoms($i+1, 1))[0];
+        ($aref->[$i],$aref->[$r]) = ($aref->[$r], $aref->[$i]);
+    }
+    return $aref;
+}
+
+# Helpers for string_from() and shuffle.
 
 sub _ranged_randoms {
     my ( $self, $range, $count ) = @_;
@@ -700,6 +712,25 @@ Returns a random 32-bit unsigned integer.  The value will satisfy
 C<< 0 <= x <= 2**32-1 >>.  This functionality is only available through the OO
 interface.
 
+=head2 shuffle
+
+    my $aref_shuffled = $random->shuffle($aref);
+
+Shuffles the contents of a reference to an array in sitiu, and returns
+the same reference.
+
+L<List::Util>, which ships with Perl, includes C<shuffle> function. But that
+function is flawed in two ways. First, from a cryptographic standpoint,
+it uses Perl's C<rand>, which is not a CSPRNG, and therefore is inadequate.
+
+Second, because Perl's rand has an internal state of just 32 bits, it cannot
+possibly generate all permutations of arrays containing 13 or more elements.
+
+This module's C<shuffle> uses a CSPRNG, and also benefits from large seeds
+and a huge internal state. ISAAC can be seeded with up to 8192 bits, yielding
+2^8192 possible initial states, and 2^8288 possible internal states. A seed of
+8192 bits will assure that for arrays of up to 966 elements every permutation
+is accessible.
 
 =head1 CONFIGURATION
 
@@ -894,6 +925,17 @@ versions as directed by the module's META files.
 Test coverage for Bytes::Random::Secure is 100% (per Devel::Cover) on any
 system that has L<Test::Warn> installed.  But to keep the module light-weight,
 Test::Warn is not dragged in by default at installation time.
+
+=head1 SEE ALSO
+
+L<Math::Random::Secure> and L<Crypt::Random> provide strong CSPRINGs and even
+more configuration options, but come with hefty toolchains.
+
+L<Bytes::Random::Secure::Tiny> is a stand-alone adaptation of
+L<Bytes::Random::Secure> with no dependencies. It will, however, detect if
+L<Math::Random::ISAAC>, L<Math::Random::ISAAC::XS>, and L<Crypt::Random::Seed>
+are installed on the target system, and if they are, it quietly upgrades to
+using them.
 
 =head1 AUTHOR
 
