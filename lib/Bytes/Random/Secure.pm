@@ -156,6 +156,7 @@ sub _build_attributes {
       $self->{$arg} = exists $args->{$arg} ? $args->{$arg} : $default;
     }
 
+    $self->{_pid} = $$;
     $self->{_RNG} = undef;    # Lazy initialization.
     return $self;
 }
@@ -170,6 +171,8 @@ sub _instantiate_rng {
     my ( %seed_opts ) = $self->_build_seed_options;
     my @seeds = $self->_generate_seed( %seed_opts );
     $self->{_RNG} = Math::Random::ISAAC->new(@seeds);
+
+    $self->{_pid} = $$;
 
     return $self->{_RNG};
 }
@@ -224,7 +227,7 @@ sub bytes {
   $bytes = defined $bytes ? $bytes : 0; # Default to zero bytes.
   $self->_validate_int( $bytes ); # Throws on violation.
 
-  $self->_instantiate_rng unless defined $self->{_RNG};
+  $self->_instantiate_rng unless $$ == $self->{_pid} && defined $self->{_RNG};
 
   my $str = '';
 
@@ -302,7 +305,7 @@ sub _ranged_randoms {
     $count = defined $count ? $count : 0;
 
     # Lazily seed the RNG so we don't waste available strong entropy.
-    $self->_instantiate_rng unless defined $self->{_RNG};
+    $self->_instantiate_rng unless $$ == $self->{_pid} && defined $self->{_RNG};
 
     my $divisor = $self->_closest_divisor($range);
 
@@ -354,7 +357,7 @@ sub _closest_divisor {
 
 sub irand {
   my( $self ) = @_;
-  $self->_instantiate_rng unless defined $self->{_RNG};
+  $self->_instantiate_rng unless $$ == $self->{_pid} && defined $self->{_RNG};
   return $self->{_RNG}->irand;
 }
 
